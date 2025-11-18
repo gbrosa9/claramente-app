@@ -31,6 +31,6 @@ export default defineConfig({
     },
   },
   css: {
-    postcss: null // Disable PostCSS processing for tests
+    postcss: undefined // Disable PostCSS processing for tests
   }
 })

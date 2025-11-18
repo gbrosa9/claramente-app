@@ -4,8 +4,9 @@ import { prisma } from '@/src/server/db'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const routeParams = await context.params;
   try {
     const authResult = await requireOwnershipOrRole(
       getConversationUserId,
@@ -20,7 +21,7 @@ export async function POST(
     // End voice session
     await prisma.voiceSession.updateMany({
       where: {
-        id: params.id,
+        id: routeParams.id,
         status: 'ACTIVE',
       },
       data: {

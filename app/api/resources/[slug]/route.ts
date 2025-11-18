@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  context: { params: Promise<{ slug: string }> }
 ) {
+  const params = await context.params;
   try {
     const { prisma } = await import('@/src/server/db')
 

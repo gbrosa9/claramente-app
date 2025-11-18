@@ -13,8 +13,9 @@ const CreateMessageSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const routeParams = await context.params;
   try {
     const authResult = await requireOwnershipOrRole(
       getConversationUserId,
@@ -33,7 +34,7 @@ export async function POST(
     // Check if conversation exists and user has access
     const conversation = await prisma.conversation.findUnique({
       where: { 
-        id: params.id,
+        id: routeParams.id,
         deletedAt: null 
       }
     })
@@ -48,7 +49,7 @@ export async function POST(
     // Create user message
     const message = await prisma.message.create({
       data: {
-        conversationId: params.id,
+        conversationId: routeParams.id,
         sender: 'USER',
         text: validatedData.text,
         audioUrl: validatedData.audioUrl,
@@ -64,7 +65,7 @@ export async function POST(
 
     // Update conversation lastMessageAt
     await prisma.conversation.update({
-      where: { id: params.id },
+      where: { id: routeParams.id },
       data: { lastMessageAt: new Date() }
     })
 
@@ -72,12 +73,12 @@ export async function POST(
     if (validatedData.text) {
       const { enqueueLLMProcessing } = await import('@/src/server/jobs/queues')
       await enqueueLLMProcessing({
-        conversationId: params.id,
+        conversationId: routeParams.id,
         messageId: message.id,
         userMessage: validatedData.text,
         userId: user.id,
       })
-      logger.info({ messageId: message.id, conversationId: params.id }, 'Message queued for LLM processing')
+      logger.info({ messageId: message.id, conversationId: routeParams.id }, 'Message queued for LLM processing')
     }
 
     // If audio message, enqueue STT processing
@@ -86,16 +87,16 @@ export async function POST(
       await enqueueSTTProcessing({
         messageId: message.id,
         audioUrl: validatedData.audioUrl,
-        conversationId: params.id,
+        conversationId: routeParams.id,
         userId: user.id,
       })
-      logger.info({ messageId: message.id, conversationId: params.id }, 'Audio message queued for STT processing')
+      logger.info({ messageId: message.id, conversationId: routeParams.id }, 'Audio message queued for STT processing')
     }
 
     logger.info({ 
       userId: user.id, 
       messageId: message.id, 
-      conversationId: params.id 
+      conversationId: routeParams.id 
     }, 'Message created')
 
     return NextResponse.json({
@@ -110,7 +111,7 @@ export async function POST(
       )
     }
 
-    logger.error({ error, conversationId: params.id }, 'Failed to create message')
+    logger.error({ error, conversationId: routeParams.id }, 'Failed to create message')
     return NextResponse.json(
       { ok: false, error: 'Failed to create message' },
       { status: 500 }

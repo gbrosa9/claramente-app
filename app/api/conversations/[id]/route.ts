@@ -5,8 +5,9 @@ import { logger } from '@/src/server/lib/logger'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const params = await context.params;
   try {
     const authResult = await requireOwnershipOrRole(
       getConversationUserId,
