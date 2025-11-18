@@ -1,0 +1,372 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  PROFESSIONAL
+  ADMIN
+}
+
+enum MessageSender {
+  USER
+  CLARA
+  PROFESSIONAL
+}
+
+enum VoiceSessionStatus {
+  ACTIVE
+  ENDED
+  FAILED
+}
+
+enum AssessmentType {
+  PHQ9
+  GAD7
+  BDI
+  CUSTOM
+}
+
+enum ProtocolAudience {
+  USER
+  PROFESSIONAL
+}
+
+enum ContactSource {
+  WEBSITE
+  APP
+  REFERRAL
+}
+
+enum AttachmentOwnerType {
+  MESSAGE
+  RESOURCE
+  ASSESSMENT
+}
+
+// User Management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String?
+  role      UserRole @default(USER)
+  locale    String   @default("pt-BR")
+  verified  Boolean  @default(false)
+  
+  // Onboarding flags
+  onboardCompleted Boolean @default(false)
+  termsAccepted    Boolean @default(false)
+  
+  // Password reset
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  
+  // Soft delete
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  professionalProfile ProfessionalProfile?
+  conversations       Conversation[]
+  assessmentResults   AssessmentResult[]
+  protocolRuns        ProtocolRun[]
+  consents            Consent[]
+  apiKeys             ApiKey[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model ProfessionalProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  registrationNumber String @unique
+  specialties        String[] // JSON array of specialties
+  bio                String?
+  hourlyRate         Decimal?
+  availability       Json? // JSON object with availability schedule
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("professional_profiles")
+}
+
+// Conversations & Messages
+model Conversation {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title         String?
+  archived      Boolean   @default(false)
+  lastMessageAt DateTime?
+  
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Relations
+  messages      Message[]
+  voiceSessions VoiceSession[]
+
+  @@index([userId, lastMessageAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  sender    MessageSender
+  text      String?
+  audioUrl  String?
+  tokensIn  Int?         // For LLM usage tracking
+  tokensOut Int?
+  metadata  Json?        // Additional data (emotions, analysis, etc.)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  attachments Attachment[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+// Voice Sessions
+model VoiceSession {
+  id             String             @id @default(cuid())
+  conversationId String
+  conversation   Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  
+  status         VoiceSessionStatus @default(ACTIVE)
+  sttEngine      String? // whisper, etc.
+  ttsEngine      String? // elevenlabs, piper, etc.
+  
+  // Metrics
+  durationMs     Int?
+  sttLatencyMs   Int?
+  ttsLatencyMs   Int?
+  llmLatencyMs   Int?
+  
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("voice_sessions")
+}
+
+// Clinical Assessments
+model Assessment {
+  id          String         @id @default(cuid())
+  type        AssessmentType
+  name        String
+  version     String         @default("1.0")
+  description String?
+  
+  items   Json // Questions/items structure
+  scoring Json // Scoring rules and interpretation
+  
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  results AssessmentResult[]
+
+  @@unique([type, version])
+  @@map("assessments")
+}
+
+model AssessmentResult {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id])
+  
+  answers  Json    // User responses
+  score    Float?  // Calculated score
+  severity String? // Interpreted severity level
+  
+  takenAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, takenAt])
+  @@map("assessment_results")
+}
+
+// TCC/DBT Protocols
+model Protocol {
+  id          String            @id @default(cuid())
+  name        String
+  version     String            @default("1.0")
+  description String?
+  audience    ProtocolAudience  @default(USER)
+  
+  steps Json // Protocol steps structure
+  
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  runs ProtocolRun[]
+
+  @@unique([name, version])
+  @@map("protocols")
+}
+
+model ProtocolRun {
+  id         String   @id @default(cuid())
+  protocolId String
+  protocol   Protocol @relation(fields: [protocolId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  state       Json     // Current state/progress
+  progress    Float    @default(0) // Percentage 0-100
+  completedAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("protocol_runs")
+}
+
+// Resources & Content
+model Resource {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String    // MDX or JSON content
+  excerpt     String?
+  tags        String[]  // Array of tags
+  featured    Boolean   @default(false)
+  
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  attachments Attachment[]
+
+  @@index([publishedAt, featured])
+  @@map("resources")
+}
+
+// Contact & Leads
+model Contact {
+  id        String        @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String
+  source    ContactSource @default(WEBSITE)
+  
+  handledBy String?
+  handledAt DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt, handledAt])
+  @@map("contacts")
+}
+
+// Consent & LGPD
+model Consent {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  docVersion String   // Version of terms/privacy policy
+  acceptedAt DateTime @default(now())
+  ip         String?
+  userAgent  String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId, acceptedAt])
+  @@map("consents")
+}
+
+// API Keys & Integrations
+model ApiKey {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  name      String
+  hashedKey String   @unique
+  scopes    String[] // Array of allowed scopes
+  
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("api_keys")
+}
+
+// Audit & Logging
+model AuditLog {
+  id       String @id @default(cuid())
+  userId   String?
+  user     User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  action   String // CREATE, UPDATE, DELETE, etc.
+  entity   String // User, Conversation, etc.
+  entityId String
+  
+  diff      Json?   // Changes made
+  ip        String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+// File Attachments
+model Attachment {
+  id        String              @id @default(cuid())
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  
+  ownerType AttachmentOwnerType
+  ownerId   String
+  
+  // Polymorphic relations
+  message  Message?  @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "attachment_message")
+  resource Resource? @relation(fields: [ownerId], references: [id], onDelete: Cascade, map: "attachment_resource")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerType, ownerId])
+  @@map("attachments")
+}

@@ -1,0 +1,36 @@
+# Ignore Docker-related files
+Dockerfile*
+docker-compose*.yml
+nginx/
+
+# Ignore scripts
+scripts/
+
+# Ignore environment files
+.env*
+!.env.example
+
+# Ignore deployment files
+DEPLOYMENT.md
+
+# Ignore database files
+*.db
+*.sqlite
+
+# Ignore uploads directory
+uploads/
+models/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore test files in production builds
+tests/
+*.test.ts
+*.test.js
+vitest.config.ts
+TESTING.md
+
+# Ignore development dependencies
+coverage/
