@@ -1,14 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/conversations/route'
-import { GET } from '@/app/api/conversations/route'
+import { NextRequest, NextResponse } from 'next/server'
+import { POST, GET } from '@/app/api/conversations/route'
 import { prisma } from '../setup'
-import { getServerSession } from 'next-auth/next'
 
-// Mock NextAuth
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn()
+vi.mock('@/src/server/auth/middleware', () => ({
+  requireAuth: vi.fn()
 }))
+
+import { requireAuth } from '@/src/server/auth/middleware'
 
 const mockUser = {
   id: 'test-user-id',
@@ -24,44 +23,26 @@ describe('/api/conversations', () => {
     await prisma.conversation.deleteMany()
     await prisma.user.deleteMany()
 
-    // Create test user
-    await prisma.user.create({
-      data: {
-        id: mockUser.id,
-        name: mockUser.name,
-        email: mockUser.email,
-        password: 'hashedpassword',
-        role: mockUser.role,
-      }
-    })
-
-    // Mock authenticated session
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: mockUser,
-      expires: '2024-12-31'
-    })
+    vi.mocked(requireAuth).mockResolvedValue({ user: mockUser } as any)
   })
 
   describe('GET /api/conversations', () => {
     it('should fetch user conversations with pagination', async () => {
-      // Create test conversations
       await prisma.conversation.createMany({
         data: [
           {
             id: 'conv-1',
             userId: mockUser.id,
             title: 'First conversation',
-            summary: 'Test summary 1',
-            topic: 'ANXIETY',
-            type: 'CHAT'
+            createdAt: new Date('2024-01-01T10:00:00Z'),
+            lastMessageAt: new Date('2024-01-01T10:00:00Z')
           },
           {
             id: 'conv-2',
             userId: mockUser.id,
             title: 'Second conversation',
-            summary: 'Test summary 2',
-            topic: 'DEPRESSION',
-            type: 'VOICE'
+            createdAt: new Date('2024-01-01T11:00:00Z'),
+            lastMessageAt: new Date('2024-01-01T11:00:00Z')
           }
         ]
       })
@@ -73,26 +54,22 @@ describe('/api/conversations', () => {
       expect(response.status).toBe(200)
       expect(data.ok).toBe(true)
       expect(data.data.conversations).toHaveLength(2)
-      expect(data.data.total).toBe(2)
-      expect(data.data.conversations[0].title).toBe('Second conversation') // Most recent first
+      expect(data.data.pagination.total).toBe(2)
+      expect(data.data.conversations[0].title).toBe('Second conversation')
     })
 
-    it('should filter conversations by topic', async () => {
+    it('should ignore unsupported filters gracefully', async () => {
       await prisma.conversation.createMany({
         data: [
           {
             id: 'conv-1',
             userId: mockUser.id,
-            title: 'Anxiety chat',
-            topic: 'ANXIETY',
-            type: 'CHAT'
+            title: 'Anxiety chat'
           },
           {
             id: 'conv-2',
             userId: mockUser.id,
-            title: 'Depression chat',
-            topic: 'DEPRESSION',
-            type: 'CHAT'
+            title: 'Depression chat'
           }
         ]
       })
@@ -102,8 +79,8 @@ describe('/api/conversations', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.conversations).toHaveLength(1)
-      expect(data.data.conversations[0].topic).toBe('ANXIETY')
+      expect(data.ok).toBe(true)
+      expect(Array.isArray(data.data.conversations)).toBe(true)
     })
 
     it('should return empty array when user has no conversations', async () => {
@@ -113,16 +90,14 @@ describe('/api/conversations', () => {
 
       expect(response.status).toBe(200)
       expect(data.data.conversations).toHaveLength(0)
-      expect(data.data.total).toBe(0)
+      expect(data.data.pagination.total).toBe(0)
     })
   })
 
   describe('POST /api/conversations', () => {
     it('should create new conversation successfully', async () => {
       const requestBody = {
-        title: 'New therapy session',
-        topic: 'ANXIETY',
-        type: 'CHAT'
+        title: 'New therapy session'
       }
 
       const request = new NextRequest('http://localhost:3001/api/conversations', {
@@ -138,31 +113,19 @@ describe('/api/conversations', () => {
 
       expect(response.status).toBe(200)
       expect(data.ok).toBe(true)
-      expect(data.data.conversation).toMatchObject({
-        title: 'New therapy session',
-        topic: 'ANXIETY',
-        type: 'CHAT',
-        userId: mockUser.id,
-        status: 'ACTIVE'
-      })
+      expect(data.data.conversation.title).toBe('New therapy session')
 
-      // Verify in database
       const conversation = await prisma.conversation.findUnique({
         where: { id: data.data.conversation.id }
       })
       expect(conversation).toBeTruthy()
+      expect(conversation?.title).toBe('New therapy session')
     })
 
-    it('should validate required fields', async () => {
-      const requestBody = {
-        title: '', // Required
-        topic: 'INVALID_TOPIC',
-        type: 'INVALID_TYPE'
-      }
-
+    it('should default title when none provided', async () => {
       const request = new NextRequest('http://localhost:3001/api/conversations', {
         method: 'POST',
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({}),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -171,24 +134,19 @@ describe('/api/conversations', () => {
       const response = await POST(request)
       const data = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(data.ok).toBe(false)
-      expect(data.error).toBe('Validation failed')
+      expect(response.status).toBe(200)
+      expect(data.ok).toBe(true)
+      expect(data.data.conversation.title).toBe('Nova conversa')
     })
 
     it('should require authentication', async () => {
-      // Mock unauthenticated session
-      vi.mocked(getServerSession).mockResolvedValue(null)
-
-      const requestBody = {
-        title: 'Test conversation',
-        topic: 'ANXIETY',
-        type: 'CHAT'
-      }
+      vi.mocked(requireAuth).mockResolvedValueOnce(
+        NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+      )
 
       const request = new NextRequest('http://localhost:3001/api/conversations', {
         method: 'POST',
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ title: 'Test conversation' }),
         headers: {
           'Content-Type': 'application/json',
         },

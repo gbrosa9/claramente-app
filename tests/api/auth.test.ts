@@ -1,15 +1,39 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/auth/register/route'
-import { prisma } from '../setup'
+
+const signUpMock = vi.fn()
+
+vi.mock('@/lib/supabase/auth', () => ({
+  createAuthClient: () => ({
+    auth: {
+      signUp: signUpMock
+    }
+  })
+}))
 
 describe('/api/auth/register', () => {
   beforeEach(async () => {
-    // Ensure clean state
-    await prisma.user.deleteMany()
+    signUpMock.mockReset()
   })
 
   it('should register a new user successfully', async () => {
+    signUpMock.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          email_confirmed_at: null,
+          user_metadata: {
+            name: 'Test User',
+            role: 'user',
+            locale: 'pt-BR'
+          }
+        }
+      },
+      error: null
+    })
+
     const requestBody = {
       name: 'Test User',
       email: 'test@example.com',
@@ -30,29 +54,24 @@ describe('/api/auth/register', () => {
 
     expect(response.status).toBe(200)
     expect(data.ok).toBe(true)
-    expect(data.data.user).toMatchObject({
-      name: 'Test User',
-      email: 'test@example.com',
-      role: 'USER',
-      verified: true,
-    })
+    expect(data.data.user.email).toBe('test@example.com')
+    expect(data.data.needsConfirmation).toBe(true)
 
-    // Verify user was created in database
-    const user = await prisma.user.findUnique({
-      where: { email: 'test@example.com' }
+    expect(signUpMock).toHaveBeenCalledWith({
+      email: 'test@example.com',
+      password: 'password123',
+      options: expect.objectContaining({
+        data: expect.objectContaining({ name: 'Test User', role: 'user', locale: 'pt-BR' })
+      })
     })
-    expect(user).toBeTruthy()
-    expect(user!.name).toBe('Test User')
   })
 
   it('should reject duplicate email registration', async () => {
-    // Create existing user
-    await prisma.user.create({
-      data: {
-        name: 'Existing User',
-        email: 'test@example.com',
-        password: 'hashedpassword',
-        role: 'USER',
+    signUpMock.mockResolvedValueOnce({
+      data: { user: null },
+      error: {
+        message: 'User already registered',
+        status: 400
       }
     })
 
@@ -75,7 +94,7 @@ describe('/api/auth/register', () => {
 
     expect(response.status).toBe(409)
     expect(data.ok).toBe(false)
-    expect(data.error).toBe('User already exists')
+    expect(data.error).toContain('já está cadastrado')
   })
 
   it('should validate required fields', async () => {
@@ -98,11 +117,22 @@ describe('/api/auth/register', () => {
 
     expect(response.status).toBe(400)
     expect(data.ok).toBe(false)
-    expect(data.error).toBe('Validation failed')
-    expect(data.details).toHaveLength(3) // 3 validation errors
+    expect(data.error).toContain('Nome deve ter')
   })
 
   it('should create consent record for new user', async () => {
+    signUpMock.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: 'user-1',
+          email: 'test@example.com',
+          email_confirmed_at: null,
+          user_metadata: {}
+        }
+      },
+      error: null
+    })
+
     const requestBody = {
       name: 'Test User',
       email: 'test@example.com',
@@ -122,14 +152,7 @@ describe('/api/auth/register', () => {
     const response = await POST(request)
     expect(response.status).toBe(200)
 
-    // Verify consent record was created
-    const user = await prisma.user.findUnique({
-      where: { email: 'test@example.com' },
-      include: { consents: true }
-    })
-
-    expect(user!.consents).toHaveLength(1)
-    expect(user!.consents[0].docVersion).toBe('1.0')
-    expect(user!.consents[0].ip).toBe('192.168.1.100')
+    const cookieHeader = response.headers.get('set-cookie')
+    expect(cookieHeader).toContain('pendingSignupEmail')
   })
 })

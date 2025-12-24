@@ -7,6 +7,7 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   TrendingUp,
+  Loader2,
   LogOut,
   MessageCircle,
   Zap,
@@ -76,6 +77,21 @@ export default function DashboardPage() {
   const [followCode, setFollowCode] = useState<string | null>(null)
   const [followCodeExpires, setFollowCodeExpires] = useState<string>('')
   const [generatingCode, setGeneratingCode] = useState(false)
+
+  const normalizedRole = session?.user?.role ? String(session.user.role).toLowerCase() : null
+  const isPatient = normalizedRole ? normalizedRole === 'user' || normalizedRole === 'patient' : null
+
+  useEffect(() => {
+    if (normalizedRole === 'professional') {
+      router.replace('/pro/dashboard')
+    }
+  }, [normalizedRole, router])
+
+  useEffect(() => {
+    if (isPatient) {
+      router.replace('/patient/dashboard')
+    }
+  }, [isPatient, router])
   
   // Toast notification state
   const [notification, setNotification] = useState<{
@@ -470,6 +486,11 @@ export default function DashboardPage() {
 
   // Generate follow code
   const generateFollowCode = async () => {
+    if (isPatient !== true) {
+      showNotification('error', 'Somente pacientes podem gerar códigos de acompanhamento.')
+      return
+    }
+
     setGeneratingCode(true)
     try {
       const response = await fetch('/api/follow-codes/generate', {
@@ -477,7 +498,19 @@ export default function DashboardPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       })
+
+      if (response.status === 401) {
+        showNotification('error', 'Sua sessão expirou. Faça login novamente.')
+        router.replace('/login')
+        return
+      }
+
+      if (response.status === 403) {
+        showNotification('error', 'Somente pacientes podem gerar códigos de acompanhamento.')
+        return
+      }
 
       const data = await response.json()
 
@@ -525,9 +558,64 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    loadPlans()
+    if (normalizedRole === null || normalizedRole === undefined) {
+      return
+    }
+
+    if (normalizedRole !== 'professional') {
+      loadPlans()
+    }
+
     setTimeout(() => setLoading(false), 1000)
-  }, [])
+  }, [normalizedRole])
+
+  useEffect(() => {
+    if (isPatient !== true) {
+      return
+    }
+
+    const sendHeartbeat = async () => {
+      try {
+        await fetch('/api/profile/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        })
+      } catch (error) {
+        console.error('Falha ao registrar atividade do paciente:', error)
+      }
+    }
+
+    void sendHeartbeat()
+
+    const intervalId = window.setInterval(() => {
+      void sendHeartbeat()
+    }, 60000)
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void sendHeartbeat()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.clearInterval(intervalId)
+    }
+  }, [isPatient])
+
+  if (isPatient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Redirecionando para seu novo painel…
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -788,6 +876,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Acompanhamento Profissional */}
+              {isPatient === true && (
               <div className="mt-8">
                 <Card className="p-6 bg-white dark:bg-gray-800 border-0 shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
@@ -830,7 +919,7 @@ export default function DashboardPage() {
                       <Button
                         variant="outline"
                         onClick={generateFollowCode}
-                        disabled={generatingCode}
+                        disabled={generatingCode || isPatient !== true}
                         className="w-full"
                         aria-label="Gerar novo código"
                       >
@@ -840,7 +929,7 @@ export default function DashboardPage() {
                   ) : (
                     <Button
                       onClick={generateFollowCode}
-                      disabled={generatingCode}
+                      disabled={generatingCode || isPatient !== true}
                       className="w-full"
                       aria-label="Gerar código de acompanhamento"
                       data-testid="generate-follow-code"
@@ -859,6 +948,37 @@ export default function DashboardPage() {
                   </div>
                 </Card>
               </div>
+              )}
+
+              {isPatient === false && (
+              <div className="mt-8">
+                <Card className="p-6 bg-white dark:bg-gray-800 border-0 shadow-sm">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                      <AlertTriangle className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Código de acompanhamento</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Apenas pacientes podem gerar códigos. Utilize as ações abaixo para acompanhar seus pacientes.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <Button onClick={() => router.push('/pro/dashboard')} className="w-full sm:w-auto">
+                      Ir para painel profissional
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push('/pro/claim')}
+                      className="w-full sm:w-auto"
+                    >
+                      Inserir código de paciente
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+              )}
             </motion.div>
           )}
 

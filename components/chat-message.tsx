@@ -11,6 +11,8 @@ interface ChatMessageProps {
     content: string
     timestamp: Date
     emotion?: string
+    // Optional audio URL when TTS is available
+    audioUrl?: string
   }
 }
 
@@ -50,6 +52,15 @@ export default function ChatMessage({ message }: ChatMessageProps) {
         }`}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        {/* Play assistant audio if available */}
+        {!isUser && message.audioUrl && (
+          <audio
+            src={message.audioUrl}
+            controls
+            preload="auto"
+            className="mt-2 w-full"
+          />
+        )}
         <span className={`text-xs mt-2 block ${isUser ? "text-white/70" : "text-slate-600 dark:text-slate-400"}`}>
           {message.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
         </span>

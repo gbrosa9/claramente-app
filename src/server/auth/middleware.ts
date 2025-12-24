@@ -38,13 +38,22 @@ export async function requireAuth(request: NextRequest): Promise<AuthenticatedRe
       )
     }
 
+    const normalizedRole = typeof token.role === 'string'
+      ? (token.role as string).toUpperCase()
+      : 'USER'
+
+    const allowedRoles: UserRole[] = ['USER', 'PROFESSIONAL', 'ADMIN']
+    const resolvedRole = (allowedRoles.includes(normalizedRole as UserRole)
+      ? normalizedRole
+      : 'USER') as UserRole
+
     // Attach user to request
     const authenticatedRequest = request as AuthenticatedRequest
     authenticatedRequest.user = {
       id: token.sub,
       email: token.email!,
       name: token.name!,
-      role: token.role as UserRole,
+      role: resolvedRole,
       verified: token.verified as boolean,
       onboardCompleted: token.onboardCompleted as boolean,
       termsAccepted: token.termsAccepted as boolean,

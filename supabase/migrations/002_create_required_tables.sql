@@ -3,6 +3,7 @@
 -- Tabela de exercícios
 CREATE TABLE IF NOT EXISTS exercises (
   id TEXT PRIMARY KEY,
+  type TEXT NOT NULL DEFAULT 'exercise',
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   duration INTEGER NOT NULL,
@@ -13,6 +14,11 @@ CREATE TABLE IF NOT EXISTS exercises (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+ALTER TABLE exercises
+  ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'exercise',
+  ADD COLUMN IF NOT EXISTS category TEXT,
+  ADD COLUMN IF NOT EXISTS instructions JSONB NOT NULL DEFAULT '{}';
 
 -- Tabela de exercícios do usuário (relação many-to-many)
 CREATE TABLE IF NOT EXISTS user_exercises (
@@ -46,6 +52,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
   price DECIMAL(10,2) NOT NULL,
   period TEXT CHECK (period IN ('month', 'year')) NOT NULL,
   features JSONB NOT NULL DEFAULT '[]',
+  duration_months INTEGER NOT NULL DEFAULT 1,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -99,6 +106,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 -- Índices para performance
+ALTER TABLE messages
+  ADD COLUMN IF NOT EXISTS user_id TEXT;
+
+ALTER TABLE progress_tracking
+  ADD COLUMN IF NOT EXISTS exercise_id TEXT REFERENCES exercises(id) ON DELETE CASCADE;
+
 CREATE INDEX IF NOT EXISTS idx_user_exercises_user_id ON user_exercises(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_exercises_exercise_id ON user_exercises(exercise_id);
 CREATE INDEX IF NOT EXISTS idx_progress_tracking_user_id ON progress_tracking(user_id);
@@ -119,54 +132,72 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Políticas para exercises (todos podem ler, apenas admins podem escrever)
+DROP POLICY IF EXISTS "Anyone can view exercises" ON exercises;
 CREATE POLICY "Anyone can view exercises" ON exercises FOR SELECT USING (true);
 
 -- Políticas para user_exercises
+DROP POLICY IF EXISTS "Users can view own user_exercises" ON user_exercises;
 CREATE POLICY "Users can view own user_exercises" ON user_exercises
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can insert own user_exercises" ON user_exercises;
 CREATE POLICY "Users can insert own user_exercises" ON user_exercises
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can update own user_exercises" ON user_exercises;
 CREATE POLICY "Users can update own user_exercises" ON user_exercises
-  FOR UPDATE USING (auth.uid()::text = user_id);
+  FOR UPDATE USING (auth.uid()::text = user_id::text);
 
 -- Políticas para progress_tracking
+DROP POLICY IF EXISTS "Users can view own progress" ON progress_tracking;
 CREATE POLICY "Users can view own progress" ON progress_tracking
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can insert own progress" ON progress_tracking;
 CREATE POLICY "Users can insert own progress" ON progress_tracking
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 -- Políticas para subscription_plans (todos podem ler)
+DROP POLICY IF EXISTS "Anyone can view subscription_plans" ON subscription_plans;
 CREATE POLICY "Anyone can view subscription_plans" ON subscription_plans FOR SELECT USING (true);
 
 -- Políticas para subscriptions
+DROP POLICY IF EXISTS "Users can view own subscriptions" ON subscriptions;
 CREATE POLICY "Users can view own subscriptions" ON subscriptions
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can insert own subscriptions" ON subscriptions;
 CREATE POLICY "Users can insert own subscriptions" ON subscriptions
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can update own subscriptions" ON subscriptions;
 CREATE POLICY "Users can update own subscriptions" ON subscriptions
-  FOR UPDATE USING (auth.uid()::text = user_id);
+  FOR UPDATE USING (auth.uid()::text = user_id::text);
 
 -- Políticas para chat_sessions
+DROP POLICY IF EXISTS "Users can view own chat_sessions" ON chat_sessions;
 CREATE POLICY "Users can view own chat_sessions" ON chat_sessions
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can insert own chat_sessions" ON chat_sessions;
 CREATE POLICY "Users can insert own chat_sessions" ON chat_sessions
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can update own chat_sessions" ON chat_sessions;
 CREATE POLICY "Users can update own chat_sessions" ON chat_sessions
-  FOR UPDATE USING (auth.uid()::text = user_id);
+  FOR UPDATE USING (auth.uid()::text = user_id::text);
 
 -- Políticas para messages
+DROP POLICY IF EXISTS "Users can view own messages" ON messages;
 CREATE POLICY "Users can view own messages" ON messages
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id::text);
+DROP POLICY IF EXISTS "Users can insert own messages" ON messages;
 CREATE POLICY "Users can insert own messages" ON messages
-  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id::text);
 
 -- Políticas para profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile" ON profiles
-  FOR SELECT USING (auth.uid()::text = id);
+  FOR SELECT USING (auth.uid()::text = id::text);
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 CREATE POLICY "Users can insert own profile" ON profiles
-  FOR INSERT WITH CHECK (auth.uid()::text = id);
+  FOR INSERT WITH CHECK (auth.uid()::text = id::text);
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile" ON profiles
-  FOR UPDATE USING (auth.uid()::text = id);
+  FOR UPDATE USING (auth.uid()::text = id::text);
 
 -- Triggers para updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -177,20 +208,26 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_exercises_updated_at ON exercises;
 CREATE TRIGGER update_exercises_updated_at BEFORE UPDATE ON exercises
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_exercises_updated_at ON user_exercises;
 CREATE TRIGGER update_user_exercises_updated_at BEFORE UPDATE ON user_exercises
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_subscription_plans_updated_at ON subscription_plans;
 CREATE TRIGGER update_subscription_plans_updated_at BEFORE UPDATE ON subscription_plans
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at BEFORE UPDATE ON subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_chat_sessions_updated_at ON chat_sessions;
 CREATE TRIGGER update_chat_sessions_updated_at BEFORE UPDATE ON chat_sessions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

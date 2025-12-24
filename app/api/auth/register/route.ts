@@ -86,8 +86,7 @@ export async function POST(request: NextRequest) {
       needsConfirmation: !data.user.email_confirmed_at
     })
 
-    // Return success response
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       data: { 
         user: data.user,
@@ -97,6 +96,19 @@ export async function POST(request: NextRequest) {
           : 'Conta criada! Verifique seu email para confirmar sua conta.'
       }
     })
+
+    try {
+      response.cookies.set('pendingSignupEmail', encodeURIComponent(validatedData.email), {
+        path: '/',
+        maxAge: 60 * 15,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      })
+    } catch (cookieError) {
+      console.warn('Não foi possível definir cookie pendingSignupEmail:', cookieError)
+    }
+
+    return response
   } catch (error) {
     if (error instanceof z.ZodError) {
       const errorMessage = error.errors.map(err => err.message).join(', ')

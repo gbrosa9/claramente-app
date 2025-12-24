@@ -85,6 +85,7 @@ describe('VoiceSession', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockWebSocket.readyState = 1
     voiceSession = new MockVoiceSession(
       mockUserId,
       mockConversationId,

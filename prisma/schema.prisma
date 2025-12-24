@@ -52,6 +52,18 @@ enum AttachmentOwnerType {
   ASSESSMENT
 }
 
+enum RiskEventSource {
+  PANIC_BUTTON
+  CHAT_DETECTION
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // User Management
 model User {
   id        String   @id @default(cuid())
@@ -83,6 +95,11 @@ model User {
   consents            Consent[]
   apiKeys             ApiKey[]
   auditLogs           AuditLog[]
+  riskEvents          RiskEvent[]
+  riskDailyAggs       RiskEventDailyAgg[]
+  activityEvents      UserActivityEvent[]
+  gamification        UserGamification?
+  exerciseSessions    ExerciseSession[]
 
   @@map("users")
 }
@@ -369,4 +386,93 @@ model Attachment {
 
   @@index([ownerType, ownerId])
   @@map("attachments")
+}
+
+model RiskEvent {
+  id          String           @id @default(cuid())
+  patientId   String @map("patient_id")
+  patient     User             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  source      RiskEventSource
+  severity    RiskSeverity
+  signal      String?
+  meta        Json     @map("meta")
+  visibleForProfessional Boolean @default(true) @map("professional_visible")
+
+  @@index([patientId, createdAt])
+  @@index([patientId, source])
+  @@map("risk_events")
+}
+
+model RiskEventDailyAgg {
+  id        String   @id @default(cuid())
+  patientId String @map("patient_id")
+  patient   User     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  date      DateTime @map("risk_date")
+  panicCount       Int @default(0) @map("panic_count")
+  detectionCount   Int @default(0) @map("detection_count")
+  highCriticalCount Int @default(0) @map("high_critical_count")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([patientId, date])
+  @@index([date])
+  @@map("risk_event_daily_agg")
+}
+
+model UserActivityEvent {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  eventType String   @map("event_type")
+  meta      Json     @map("meta")
+
+  @@index([userId, createdAt])
+  @@map("user_activity_events")
+}
+
+model UserGamification {
+  userId         String   @id @map("user_id")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xpTotal        Int      @default(0)    @map("xp_total")
+  xpToday        Int      @default(0)    @map("xp_today")
+  dailyGoal      Int      @default(30)   @map("daily_goal")
+  level          Int      @default(1)
+  streakDays     Int      @default(0)    @map("streak_days")
+  bestStreak     Int      @default(0)    @map("best_streak")
+  lastActiveDate DateTime?                 @map("last_active_date")
+  updatedAt      DateTime @default(now()) @map("updated_at")
+
+  @@map("user_gamification")
+}
+
+model ExerciseCatalog {
+  id              String            @id @default(cuid())
+  slug            String            @unique
+  title           String
+  category        String
+  durationMinutes Int               @map("duration_minutes")
+  difficulty      Int               @default(1)
+  xpReward        Int               @default(10) @map("xp_reward")
+  isActive        Boolean           @default(true) @map("is_active")
+
+  sessions        ExerciseSession[]
+
+  @@map("exercise_catalog")
+}
+
+model ExerciseSession {
+  id          String           @id @default(cuid())
+  userId      String           @map("user_id")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId  String           @map("exercise_id")
+  exercise    ExerciseCatalog  @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  startedAt   DateTime         @default(now()) @map("started_at")
+  completedAt DateTime?        @map("completed_at")
+  status      String           @default("started")
+  xpEarned    Int              @default(0) @map("xp_earned")
+
+  @@index([userId, startedAt], name: "exercise_sessions_user_started_idx")
+  @@map("exercise_sessions")
 }

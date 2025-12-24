@@ -29,8 +29,9 @@ const envSchema = z.object({
   PIPER_URL: z.string().url().optional(),
   
   // LLM
-  LLM_PROVIDER: z.enum(['openai', 'lmstudio']).default('openai'),
+  LLM_PROVIDER: z.enum(['openai', 'lmstudio', 'gemini']).default('openai'),
   OPENAI_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
   LMSTUDIO_URL: z.string().url().optional(),
   
   // Security
@@ -62,6 +63,10 @@ export function validateEnv() {
     // Additional conditional validation
     if (env.LLM_PROVIDER === 'openai' && !env.OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY is required when LLM_PROVIDER is "openai"')
+    }
+
+    if (env.LLM_PROVIDER === 'gemini' && !env.GEMINI_API_KEY) {
+      throw new Error('GEMINI_API_KEY is required when LLM_PROVIDER is "gemini"')
     }
     
     if (env.LLM_PROVIDER === 'lmstudio' && !env.LMSTUDIO_URL) {
@@ -143,6 +148,9 @@ export const config = {
       provider: env.LLM_PROVIDER,
       openai: {
         apiKey: env.OPENAI_API_KEY,
+      },
+      gemini: {
+        apiKey: env.GEMINI_API_KEY,
       },
       lmstudio: {
         url: env.LMSTUDIO_URL || 'http://localhost:1234/v1',

@@ -45,13 +45,7 @@ export async function middleware(request: NextRequest) {
     path.startsWith(route)
   )
   const isApiAuthRoute = path.startsWith('/api/auth/')
-  const isPublicApiRoute = ['/api/contact', '/api/health'].some(route => path.startsWith(route))
-
-  // Auth redirects
-  if (isAuthPage && isAuth) {
-    // Redirect authenticated users away from auth pages
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  const isPublicApiRoute = ['/api/contact', '/api/health', '/api/chat', '/api/tts', '/api/stt', '/api/avatar/tts', '/api/voice'].some(route => path.startsWith(route))
 
   if (!isAuth && !isPublicRoute && !isApiAuthRoute && !isPublicApiRoute) {
     // Redirect unauthenticated users to login

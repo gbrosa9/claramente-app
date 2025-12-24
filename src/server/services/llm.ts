@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import { logger } from '../lib/logger'
 
 interface LLMConfig {
-  provider: 'openai' | 'lmstudio'
+  provider: 'openai' | 'lmstudio' | 'gemini'
   apiKey?: string
   baseURL?: string
   model?: string
@@ -33,6 +33,11 @@ export class LLMService {
       this.client = new OpenAI({
         apiKey: config.apiKey || process.env.OPENAI_API_KEY,
       })
+    } else if (config.provider === 'gemini') {
+      // If using Gemini, prefer GEMINI_API_KEY env var
+      this.client = new OpenAI({
+        apiKey: config.apiKey || process.env.GEMINI_API_KEY,
+      })
     } else if (config.provider === 'lmstudio') {
       this.client = new OpenAI({
         baseURL: config.baseURL || process.env.LMSTUDIO_URL,
@@ -49,6 +54,8 @@ export class LLMService {
     metadata: any
   }> {
     try {
+      this.validateInput(context, userMessage)
+
       const systemPrompt = this.buildSystemPrompt(context)
       const messages = this.buildMessages(context, userMessage)
 
@@ -167,6 +174,20 @@ Nome do usuário: ${context.userProfile?.name || 'Usuário'}`
     }
   }
 
+  private validateInput(context: ConversationContext, userMessage: string): void {
+    if (!context.conversationId || context.conversationId.trim().length === 0) {
+      throw new Error('Invalid conversation context')
+    }
+
+    if (!Array.isArray(context.messages) || context.messages.length === 0) {
+      throw new Error('Conversation history required')
+    }
+
+    if (!userMessage || userMessage.trim().length === 0) {
+      throw new Error('User message required')
+    }
+  }
+
   async summarizeConversation(messages: Array<{ content: string; timestamp: Date }>): Promise<string> {
     try {
       const conversationText = messages
@@ -199,12 +220,18 @@ Nome do usuário: ${context.userProfile?.name || 'Usuário'}`
 
 // Factory function
 export function createLLMService(): LLMService {
-  const provider = (process.env.LLM_PROVIDER as 'openai' | 'lmstudio') || 'openai'
-  
+  const provider = (process.env.LLM_PROVIDER as 'openai' | 'lmstudio' | 'gemini') || 'openai'
+
+  const apiKey = provider === 'openai'
+    ? process.env.OPENAI_API_KEY
+    : provider === 'gemini'
+      ? process.env.GEMINI_API_KEY
+      : undefined
+
   return new LLMService({
     provider,
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey,
     baseURL: process.env.LMSTUDIO_URL,
-    model: provider === 'openai' ? 'gpt-4o-mini' : 'llama-3.1-8b-instruct',
+    model: provider === 'openai' || provider === 'gemini' ? 'gpt-4o-mini' : 'llama-3.1-8b-instruct',
   })
 }

@@ -40,7 +40,7 @@ export class STTService {
       const transcriptionResponse = await axios.post(this.whisperUrl, formData, {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY}`,
         },
         timeout: 60000,
       })
@@ -86,7 +86,7 @@ export class STTService {
       const response = await axios.post(this.whisperUrl, formData, {
         headers: {
           ...formData.getHeaders(),
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY}`,
         },
         timeout: 60000,
       })

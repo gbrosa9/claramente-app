@@ -1,4 +1,5 @@
 -- Adicionar coluna description à tabela subscription_plans se não existir
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW());
 ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS description TEXT;
 
 -- Atualizar os planos existentes com descrições

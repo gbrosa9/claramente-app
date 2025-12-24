@@ -112,12 +112,12 @@ export function applySecurityHeaders(response: NextResponse): NextResponse {
   // Content Security Policy
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https:",
-    "font-src 'self' https:",
+    "font-src 'self' data: https:",
     "connect-src 'self' https: wss: ws:",
-    "media-src 'self' https:",
+    "media-src 'self' https: blob: data:",
   ].join('; ')
   
   response.headers.set('Content-Security-Policy', csp)

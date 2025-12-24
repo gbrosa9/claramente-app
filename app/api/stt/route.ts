@@ -3,9 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/src/server/auth/config'
 import OpenAI from 'openai'
 
-// Initialize OpenAI client
+// Initialize OpenAI client (prefer GEMINI key if provided)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY,
 })
 
 export async function POST(request: NextRequest) {

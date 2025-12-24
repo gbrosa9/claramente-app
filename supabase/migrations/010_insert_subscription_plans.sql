@@ -4,7 +4,10 @@
 DELETE FROM subscription_plans;
 
 -- Inserir planos com descrições
-INSERT INTO subscription_plans (id, name, description, price, period, features, is_active) VALUES 
+ALTER TABLE subscription_plans
+  ADD COLUMN IF NOT EXISTS duration_months INTEGER NOT NULL DEFAULT 1;
+
+INSERT INTO subscription_plans (id, name, description, price, period, features, duration_months, is_active) VALUES 
 (
   'gratuito',
   'Gratuito',
@@ -17,6 +20,7 @@ INSERT INTO subscription_plans (id, name, description, price, period, features, 
     "Relatórios básicos de progresso", 
     "Exercícios de respiração fundamentais"
   ]'::jsonb,
+  1,
   true
 ),
 (
@@ -33,6 +37,7 @@ INSERT INTO subscription_plans (id, name, description, price, period, features, 
     "Notificações inteligentes", 
     "Suporte prioritário"
   ]'::jsonb,
+  1,
   true
 ),
 (
@@ -50,5 +55,6 @@ INSERT INTO subscription_plans (id, name, description, price, period, features, 
     "Conteúdo exclusivo",
     "Suporte 24/7"
   ]'::jsonb,
+  1,
   true
 );

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/src/server/auth/config"
+import { createAdminClient } from "@/lib/supabase/auth"
 
 export const runtime = 'nodejs'
 
@@ -14,71 +15,80 @@ function generateCode(): string {
   return code
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {}
-          },
-        },
-      }
-    )
+    const session = await getServerSession(authOptions)
 
-    // Verificar sessão
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    console.log('[Follow Code] Session check:', {
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      sessionError: sessionError?.message
-    })
-
-    if (sessionError || !session?.user) {
-      console.error('[Follow Code] Auth error:', sessionError)
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Não autorizado" },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY ausente. Configure a variável de ambiente para liberar geração de código.')
+      return NextResponse.json(
+        { error: "Configuração ausente no servidor" },
+        { status: 500 }
+      )
+    }
+
+    const sessionUser = session.user as Record<string, any>
+    const userId = sessionUser.id as string
+    const normalizedRole = String(sessionUser.role || sessionUser.user_metadata?.role || '').toLowerCase()
+    const adminClient = createAdminClient()
 
     // Verificar se é paciente (role = 'user')
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await adminClient
       .from('profiles')
       .select('role')
       .eq('id', userId)
       .single()
 
-    console.log('[Follow Code] Profile check:', {
-      userId,
-      profile,
-      profileError: profileError?.message
-    })
-
-    if (profileError) {
-      console.error('[Follow Code] Profile fetch error:', profileError)
+    if (profileError && profileError.code !== 'PGRST116') {
       return NextResponse.json(
         { error: "Erro ao buscar perfil do usuário" },
         { status: 500 }
       )
     }
 
-    if (profile?.role !== 'user') {
-      console.log('[Follow Code] Invalid role:', profile?.role)
+    let resolvedRole = profile?.role
+
+    if (!resolvedRole) {
+      const defaultName =
+        sessionUser.name ||
+        sessionUser.full_name ||
+        sessionUser.user_metadata?.name ||
+        sessionUser.user_metadata?.full_name ||
+        sessionUser.email?.split('@')[0] ||
+        'Paciente'
+
+      const { data: insertedProfile, error: insertProfileError } = await adminClient
+        .from('profiles')
+        .upsert(
+          {
+            id: userId,
+            full_name: defaultName,
+            email: sessionUser.email ?? null,
+            role: normalizedRole === 'user' ? 'user' : 'user',
+          },
+          { onConflict: 'id' }
+        )
+        .select('role')
+        .single()
+
+      if (insertProfileError) {
+        return NextResponse.json(
+          { error: "Erro ao criar perfil do usuário" },
+          { status: 500 }
+        )
+      }
+
+      resolvedRole = insertedProfile?.role ?? 'user'
+    }
+
+    if (normalizedRole !== 'user' && resolvedRole !== 'user') {
       return NextResponse.json(
         { error: "Apenas pacientes podem gerar códigos de acompanhamento" },
         { status: 403 }
@@ -91,13 +101,13 @@ export async function POST(request: NextRequest) {
     let codeExists = true
 
     while (codeExists && attempts < 10) {
-      const { data } = await supabase
+      const { data, error } = await adminClient
         .from('follow_codes')
         .select('code')
         .eq('code', code)
         .single()
       
-      if (!data) {
+      if (error?.code === 'PGRST116' || !data) {
         codeExists = false
       } else {
         code = generateCode()
@@ -117,7 +127,7 @@ export async function POST(request: NextRequest) {
     expiresAt.setHours(expiresAt.getHours() + 48)
 
     // Inserir código
-    const { data: followCode, error: insertError } = await supabase
+    const { data: followCode, error: insertError } = await adminClient
       .from('follow_codes')
       .insert({
         code,
@@ -128,18 +138,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error('[Follow Code] Insert error:', insertError)
       return NextResponse.json(
         { error: "Erro ao gerar código de acompanhamento" },
         { status: 500 }
       )
     }
-
-    console.log('[Follow Code] Code generated successfully:', {
-      code,
-      userId,
-      expiresAt: expiresAt.toISOString()
-    })
 
     return NextResponse.json({
       success: true,
@@ -148,7 +151,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Erro na API de geração de código:', error)
     return NextResponse.json(
       { error: "Erro interno do servidor" },
       { status: 500 }

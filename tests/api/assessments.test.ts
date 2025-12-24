@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { GET } from '@/app/api/assessments/route'
 import { prisma } from '../setup'
-import { getServerSession } from 'next-auth/next'
 
-// Mock NextAuth
-vi.mock('next-auth/next', () => ({
-  getServerSession: vi.fn()
+vi.mock('@/src/server/auth/middleware', () => ({
+  requireAuth: vi.fn()
 }))
+
+import { requireAuth } from '@/src/server/auth/middleware'
 
 const mockUser = {
   id: 'test-user-id',
@@ -48,16 +48,11 @@ describe('/api/assessments', () => {
         }
       ]
     })
+
+    vi.mocked(requireAuth).mockResolvedValue({ user: mockUser } as any)
   })
 
   describe('GET /api/assessments', () => {
-    beforeEach(() => {
-      vi.mocked(getServerSession).mockResolvedValue({
-        user: mockUser,
-        expires: '2024-12-31'
-      })
-    })
-
     it('should fetch published assessments', async () => {
       // Create test assessments
       await prisma.assessment.createMany({
@@ -67,9 +62,10 @@ describe('/api/assessments', () => {
             type: 'PHQ9',
             name: 'PHQ-9 Depression Assessment',
             description: 'Depression screening questionnaire',
-            questions: [
+            items: [
               { id: 'q1', text: 'Little interest in doing things?', type: 'scale', options: ['0', '1', '2', '3'] }
             ],
+            scoring: { type: 'sum' },
             publishedAt: new Date()
           },
           {
@@ -77,9 +73,10 @@ describe('/api/assessments', () => {
             type: 'GAD7',
             name: 'GAD-7 Anxiety Assessment',
             description: 'Anxiety screening questionnaire',
-            questions: [
+            items: [
               { id: 'q1', text: 'Feeling nervous or anxious?', type: 'scale', options: ['0', '1', '2', '3'] }
             ],
+            scoring: { type: 'sum' },
             publishedAt: new Date()
           }
         ]
@@ -94,6 +91,7 @@ describe('/api/assessments', () => {
       expect(data.data.assessments).toHaveLength(2)
       expect(data.data.assessments[0].type).toBeDefined()
       expect(data.data.assessments[0].name).toBeDefined()
+      expect(data.data.assessments[0].items).toBeDefined()
     })
 
     it('should not return unpublished assessments', async () => {
@@ -104,7 +102,8 @@ describe('/api/assessments', () => {
             type: 'PHQ9',
             name: 'Published Assessment',
             description: 'This is published',
-            questions: [{ id: 'q1', text: 'Test question', type: 'scale', options: ['0', '1'] }],
+            items: [{ id: 'q1', text: 'Test question', type: 'scale', options: ['0', '1'] }],
+            scoring: { type: 'sum' },
             publishedAt: new Date()
           },
           {
@@ -112,7 +111,8 @@ describe('/api/assessments', () => {
             type: 'GAD7',
             name: 'Unpublished Assessment',
             description: 'This is not published',
-            questions: [{ id: 'q1', text: 'Test question', type: 'scale', options: ['0', '1'] }],
+            items: [{ id: 'q1', text: 'Test question', type: 'scale', options: ['0', '1'] }],
+            scoring: { type: 'sum' },
             publishedAt: null // Not published
           }
         ]
@@ -137,7 +137,9 @@ describe('/api/assessments', () => {
     })
 
     it('should require authentication', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      vi.mocked(requireAuth).mockResolvedValueOnce(
+        NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+      )
 
       const request = new NextRequest('http://localhost:3001/api/assessments')
       const response = await GET(request)
@@ -156,7 +158,8 @@ describe('/api/assessments', () => {
             type: 'PHQ9',
             name: 'Depression Assessment',
             description: 'Depression screening',
-            questions: [{ id: 'q1', text: 'Test', type: 'scale', options: ['0', '1'] }],
+            items: [{ id: 'q1', text: 'Test', type: 'scale', options: ['0', '1'] }],
+            scoring: { type: 'sum' },
             publishedAt: new Date()
           },
           {
@@ -164,7 +167,8 @@ describe('/api/assessments', () => {
             type: 'GAD7',
             name: 'Anxiety Assessment',
             description: 'Anxiety screening',
-            questions: [{ id: 'q1', text: 'Test', type: 'scale', options: ['0', '1'] }],
+            items: [{ id: 'q1', text: 'Test', type: 'scale', options: ['0', '1'] }],
+            scoring: { type: 'sum' },
             publishedAt: new Date()
           }
         ]
@@ -175,18 +179,13 @@ describe('/api/assessments', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      // Note: The actual API might not support filtering by type
-      // This test verifies the structure works regardless
       expect(Array.isArray(data.data.assessments)).toBe(true)
     })
   })
 
   describe('professional access', () => {
     beforeEach(() => {
-      vi.mocked(getServerSession).mockResolvedValue({
-        user: mockProfessional,
-        expires: '2024-12-31'
-      })
+      vi.mocked(requireAuth).mockResolvedValue({ user: mockProfessional } as any)
     })
 
     it('should allow professionals to access assessments', async () => {
@@ -219,7 +218,7 @@ describe('/api/assessments', () => {
           type: 'PHQ9',
           name: 'Test Assessment',
           description: 'A test assessment',
-          questions: [
+          items: [
             {
               id: 'q1',
               text: 'How often have you been bothered by little interest?',
@@ -227,6 +226,7 @@ describe('/api/assessments', () => {
               options: ['Not at all', 'Several days', 'More than half the days', 'Nearly every day']
             }
           ],
+          scoring: { type: 'sum' },
           publishedAt: new Date()
         }
       })
@@ -251,7 +251,7 @@ describe('/api/assessments', () => {
           type: 'CUSTOM',
           name: 'Complex Assessment',
           description: 'Assessment with various question types',
-          questions: [
+          items: [
             {
               id: 'q1',
               text: 'Scale question',
@@ -265,6 +265,7 @@ describe('/api/assessments', () => {
               options: ['Option A', 'Option B', 'Option C']
             }
           ],
+          scoring: { type: 'custom' },
           publishedAt: new Date()
         }
       })
@@ -274,9 +275,9 @@ describe('/api/assessments', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.data.assessments[0].questions).toHaveLength(2)
-      expect(data.data.assessments[0].questions[0].type).toBe('scale')
-      expect(data.data.assessments[0].questions[1].type).toBe('multiple_choice')
+      expect(data.data.assessments[0].items).toHaveLength(2)
+      expect(data.data.assessments[0].items[0].type).toBe('scale')
+      expect(data.data.assessments[0].items[1].type).toBe('multiple_choice')
     })
   })
 })

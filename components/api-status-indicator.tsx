@@ -36,7 +36,8 @@ export default function APIStatusIndicator() {
         body: JSON.stringify({ message: 'teste' })
       })
       const chatData = await chatResponse.json()
-      const chatWorking = chatData.ok || chatData.error !== 'Chave da API OpenAI inválida ou não configurada'
+      // Check if chat is working (OpenAI or Gemini)
+      const chatWorking = chatData.ok || (chatData.error && !chatData.error.includes('Chave da API') && !chatData.error.includes('inválida'))
 
       setStatus({
         openai: chatWorking,
@@ -113,7 +114,7 @@ export default function APIStatusIndicator() {
           <CardDescription>
             {allWorking 
               ? 'Clara está pronta para conversar!' 
-              : 'Configure sua chave OpenAI para ativar a IA'
+              : 'Configure sua chave de IA (OpenAI ou Gemini)'
             }
           </CardDescription>
         </CardHeader>
@@ -127,7 +128,7 @@ export default function APIStatusIndicator() {
             >
               <div className="space-y-2">
                 <StatusItem 
-                  label="OpenAI API" 
+                  label="API de IA (OpenAI/Gemini)" 
                   working={status.openai} 
                   icon={<Key className="w-4 h-4" />}
                 />

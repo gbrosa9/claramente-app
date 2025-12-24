@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/src/server/auth/config"
+import { createAdminClient } from "@/lib/supabase/auth"
 
 export const runtime = 'nodejs'
 
@@ -15,45 +16,74 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {}
-          },
-        },
-      }
-    )
+    const session = await getServerSession(authOptions)
 
-    // Verificar sessão
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    if (sessionError || !session?.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Não autorizado" },
         { status: 401 }
       )
     }
 
-    const userId = session.user.id
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY ausente. Configure a variável de ambiente para liberar resgate de códigos.')
+      return NextResponse.json(
+        { error: "Configuração ausente no servidor" },
+        { status: 500 }
+      )
+    }
+
+    const sessionUser = session.user as Record<string, any>
+    const userId = String(sessionUser.id)
+    const normalizedRole = String(sessionUser.role ?? sessionUser.user_metadata?.role ?? '').toLowerCase()
+
+    const adminClient = createAdminClient()
 
     // Verificar se é profissional
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
+    let resolvedRole = normalizedRole
 
-    if (profile?.role !== 'professional') {
+    if (!resolvedRole) {
+      const { data: profileData, error: profileError } = await adminClient
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Erro ao buscar perfil do profissional:', profileError)
+      }
+
+      resolvedRole = String(profileData?.role ?? '').toLowerCase()
+    }
+
+    if (resolvedRole !== 'professional') {
+      if (normalizedRole === 'professional' || !resolvedRole) {
+        const { error: ensureRoleError } = await adminClient
+          .from('profiles')
+          .upsert({
+            id: userId,
+            full_name:
+              sessionUser.name ??
+              sessionUser.full_name ??
+              sessionUser.user_metadata?.name ??
+              sessionUser.user_metadata?.full_name ??
+              sessionUser.email?.split('@')[0] ??
+              'Profissional',
+            email: sessionUser.email ?? null,
+            role: 'professional',
+          }, { onConflict: 'id' })
+          .select('role')
+          .single()
+
+        if (ensureRoleError) {
+          console.error('Erro ao garantir role profissional:', ensureRoleError)
+        } else {
+          resolvedRole = 'professional'
+        }
+      }
+    }
+
+    if (resolvedRole !== 'professional') {
       return NextResponse.json(
         { error: "Apenas profissionais podem resgatar códigos" },
         { status: 403 }
@@ -61,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar código
-    const { data: followCode, error: codeError } = await supabase
+    const { data: followCode, error: codeError } = await adminClient
       .from('follow_codes')
       .select('*')
       .eq('code', code.toUpperCase())
@@ -101,7 +131,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar/atualizar vínculo
-    const { data: existingLink } = await supabase
+    const { data: existingLink } = await adminClient
       .from('patient_professionals')
       .select('*')
       .eq('patient_id', followCode.patient_id)
@@ -110,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     if (existingLink) {
       // Reativar vínculo se existir
-      const { error: updateError } = await supabase
+      const { error: updateError } = await adminClient
         .from('patient_professionals')
         .update({ status: 'active' })
         .eq('id', existingLink.id)
@@ -124,7 +154,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Criar novo vínculo
-      const { error: insertError } = await supabase
+      const { error: insertError } = await adminClient
         .from('patient_professionals')
         .insert({
           patient_id: followCode.patient_id,
@@ -142,7 +172,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Marcar código como usado
-    const { error: updateCodeError } = await supabase
+    const { error: updateCodeError } = await adminClient
       .from('follow_codes')
       .update({
         used_by: userId,

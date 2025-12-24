@@ -11,6 +11,9 @@ export interface TTSConfig {
   provider: 'elevenlabs' | 'piper'
   apiKey?: string
   voiceId?: string
+  therapeuticVoiceId?: string
+  piperVoice?: string
+  piperTherapeuticVoice?: string
   baseURL?: string
 }
 
@@ -22,7 +25,10 @@ export class TTSService {
       provider: (process.env.TTS_PROVIDER as 'elevenlabs' | 'piper') || 'elevenlabs',
       apiKey: process.env.ELEVENLABS_API_KEY,
       voiceId: process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB', // Default voice
+      therapeuticVoiceId: process.env.ELEVENLABS_THERAPEUTIC_VOICE_ID || process.env.ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB',
       baseURL: process.env.PIPER_URL || 'http://localhost:8080',
+      piperVoice: process.env.PIPER_VOICE || 'pt_BR-faber-medium',
+      piperTherapeuticVoice: process.env.PIPER_THERAPEUTIC_VOICE || process.env.PIPER_VOICE || 'pt_BR-faber-medium',
       ...config,
     }
   }
@@ -53,18 +59,27 @@ export class TTSService {
   }): Promise<TTSResult> {
     logger.info({ textLength: text.length, voiceId: this.config.voiceId }, 'Starting ElevenLabs synthesis')
 
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${this.config.voiceId}`
+    const voiceId = (options as any)?.therapeutic ? (this.config as any).therapeuticVoiceId || this.config.voiceId : this.config.voiceId
+
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`
     
-    const requestBody = {
+    const requestBody: any = {
       text,
       model_id: 'eleven_multilingual_v2',
       voice_settings: {
-        stability: options?.stability ?? 0.5,
-        similarity_boost: options?.similarity_boost ?? 0.75,
-        style: options?.style ?? 0.0,
+        stability: options?.stability ?? 0.6,
+        similarity_boost: options?.similarity_boost ?? 0.8,
+        style: options?.style ?? 0.15,
         use_speaker_boost: true,
       },
       output_format: 'mp3_44100_128',
+    }
+
+    // allow a simple therapeutic flag to adjust settings for a softer/friendly female voice
+    if ((options as any)?.therapeutic) {
+      requestBody.voice_settings.stability = options?.stability ?? 0.75
+      requestBody.voice_settings.similarity_boost = options?.similarity_boost ?? 0.9
+      requestBody.voice_settings.style = options?.style ?? 0.18
     }
 
     const response = await axios.post(url, requestBody, {
@@ -98,9 +113,11 @@ export class TTSService {
   private async synthesizeWithPiper(text: string, options?: any): Promise<TTSResult> {
     logger.info({ textLength: text.length }, 'Starting Piper synthesis')
 
+    const voice = options?.therapeutic ? (this.config as any).piperTherapeuticVoice || this.config.piperVoice : this.config.piperVoice
+
     const response = await axios.post(`${this.config.baseURL}/synthesize`, {
       text,
-      voice: 'pt_BR-faber-medium',
+      voice,
       output_format: 'wav',
     }, {
       responseType: 'arraybuffer',
@@ -146,6 +163,7 @@ export class TTSService {
       stability: 0.7,  // More stable, less variable
       similarity_boost: 0.8,  // High similarity to base voice
       style: 0.2,  // Slight emotional expression
+      therapeutic: true,
     }
 
     return await this.synthesizeSpeech(text, therapeuticOptions)

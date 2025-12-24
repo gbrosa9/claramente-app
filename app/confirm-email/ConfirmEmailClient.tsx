@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Brain, Mail, CheckCircle, AlertCircle, ArrowLeft } from 'lucide-react'
@@ -19,6 +19,73 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
   const [success, setSuccess] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  useEffect(() => {
+    if (!initialEmail) {
+      return
+    }
+
+    setEmail(initialEmail)
+  }, [initialEmail])
+
+  useEffect(() => {
+    if (initialEmail) {
+      try {
+        document.cookie = `pendingSignupEmail=${encodeURIComponent(initialEmail)}; Path=/; Max-Age=${60 * 15}; SameSite=Lax` + (process.env.NODE_ENV === 'production' ? '; Secure' : '')
+        window.sessionStorage.setItem('pendingSignupEmail', initialEmail)
+      } catch (cookieError) {
+        console.warn('Não foi possível atualizar cookie pendingSignupEmail:', cookieError)
+      }
+      return
+    }
+
+    const cookieValue = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('pendingSignupEmail='))
+      ?.split('=')[1]
+
+    if (cookieValue) {
+      try {
+        const decoded = decodeURIComponent(cookieValue)
+        setEmail(decoded)
+      } catch {
+        setEmail(cookieValue)
+      }
+      return
+    }
+
+    try {
+      const storageEmail = window.sessionStorage.getItem('pendingSignupEmail')
+      if (storageEmail) {
+        setEmail(storageEmail)
+      }
+    } catch (storageError) {
+      console.warn('Não foi possível ler email pendente do sessionStorage:', storageError)
+    }
+  }, [initialEmail])
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+
+    const interval = window.setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(interval)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => window.clearInterval(interval)
+  }, [resendCooldown])
+
+  const formatCooldown = (value: number) => {
+    const minutes = Math.floor(value / 60)
+    const seconds = value % 60
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,24 +93,57 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
     setError('')
 
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: 'signup',
+      const rawEmail = email || initialEmail || ''
+      const normalizedEmail = rawEmail.trim().toLowerCase()
+
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: code,
+          ...(normalizedEmail && normalizedEmail.includes('@') ? { email: normalizedEmail } : {}),
+        }),
       })
 
-      if (error) {
-        setError('Código inválido ou expirado. Tente novamente.')
+      const result = await response.json()
+
+      if (!response.ok || !result.ok) {
+        const errorMessage = result?.error || 'Erro na verificação. Tente novamente.'
+        setError(errorMessage)
         return
       }
 
-      if (data.user) {
-        setSuccess(true)
-        setTimeout(() => router.push('/login?confirmed=true'), 2000)
-      } else {
-        setError('Erro na verificação. Tente novamente.')
+      const verifiedEmail = result?.data?.user?.email
+
+      if (!verifiedEmail) {
+        setError('Não foi possível confirmar sua conta. Tente novamente.')
+        return
       }
+
+      const supabase = createClient()
+
+      if (result?.data?.session?.access_token && result?.data?.session?.refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: result.data.session.access_token,
+          refresh_token: result.data.session.refresh_token,
+        })
+
+        if (sessionError) {
+          console.error('Erro ao configurar sessão:', sessionError)
+        }
+      } else {
+        await supabase.auth.getSession()
+      }
+
+      try {
+        document.cookie = 'pendingSignupEmail=; Path=/; Max-Age=0; SameSite=Lax'
+        window.sessionStorage.removeItem('pendingSignupEmail')
+      } catch (cookieError) {
+        console.warn('Não foi possível remover cookie pendingSignupEmail:', cookieError)
+      }
+
+      setSuccess(true)
+      setTimeout(() => router.push('/dashboard'), 1500)
     } catch (err) {
       console.error('Verification error:', err)
       setError('Erro de conexão. Tente novamente.')
@@ -53,30 +153,41 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
   }
 
   const handleResendEmail = async () => {
-    if (!email) {
-      setError('Email não informado')
+    if (resendCooldown > 0) {
       return
     }
 
     setResendLoading(true)
     setError('')
+    setResendSuccess(false)
+    setResendCooldown(60)
 
     try {
+      const normalizedEmail = (email || initialEmail || '').trim().toLowerCase()
+
+      if (!normalizedEmail) {
+        setError('Não foi possível identificar o email utilizado no cadastro. Volte para o registro e tente novamente.')
+        setResendCooldown(0)
+        return
+      }
+
       const supabase = createClient()
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email,
+        email: normalizedEmail,
         options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
       })
 
       if (error) {
         setError('Erro ao reenviar email: ' + error.message)
+        setResendCooldown(0)
       } else {
         setResendSuccess(true)
         setTimeout(() => setResendSuccess(false), 3000)
       }
     } catch (err) {
       setError('Erro de conexão ao reenviar email')
+      setResendCooldown(0)
     } finally {
       setResendLoading(false)
     }
@@ -119,8 +230,8 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
           <CardContent className="space-y-6">
             <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4 text-center">
               <Mail className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-              <p className="text-sm text-purple-700 dark:text-purple-300">Código enviado para:</p>
-              <p className="font-semibold text-purple-800 dark:text-purple-200">{email || 'Seu email'}</p>
+              <p className="text-sm text-purple-700 dark:text-purple-300">Código enviado para o email cadastrado.</p>
+              <p className="font-semibold text-purple-800 dark:text-purple-200">Caso não tenha recebido, tente reenviar abaixo.</p>
             </div>
 
             {resendSuccess && (
@@ -138,7 +249,7 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
             )}
 
             <form onSubmit={handleVerifyCode} className="space-y-4">
-              <div>
+              <div className="space-y-4">
                 <label className="block text-sm font-medium mb-2">Código de verificação</label>
                 <Input
                   type="text"
@@ -167,8 +278,17 @@ export default function ConfirmEmailClient({ initialEmail }: { initialEmail?: st
                 </div>
               </div>
 
-              <Button onClick={handleResendEmail} disabled={resendLoading} variant="outline" className="w-full border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20">
-                {resendLoading ? 'Reenviando...' : 'Reenviar email'}
+              <Button
+                onClick={handleResendEmail}
+                disabled={resendLoading || resendCooldown > 0}
+                variant="outline"
+                className="w-full border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+              >
+                {resendLoading
+                  ? 'Reenviando...'
+                  : resendCooldown > 0
+                    ? `Reenviar email em ${formatCooldown(resendCooldown)}`
+                    : 'Reenviar email'}
               </Button>
 
               <div className="text-center">

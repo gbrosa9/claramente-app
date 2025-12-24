@@ -1,0 +1,743 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "language": "pt-BR",
+    "voicePreset": {
+      "provider": "google",
+      "voice": "pt-BR-Neural2-C",
+      "style": "calm",
+      "speakingRate": 0.95,
+      "pitch": 0.0,
+      "note": "Use SSML com pausas suaves entre 400ms e 600ms quando indicado nos passos"
+    }
+  },
+  "breathing": [
+    {
+      "id": "breath_46_calm_wave",
+      "name": "Respiracao 4-6",
+      "objetivo": "Desacelerar ritmo respiratorio e reduzir ansiedade aguda",
+      "quandoUsar": ["crise de ansiedade", "sensacao de aperto no peito", "tensao geral"],
+      "duracaoEstimada": "3 a 5 minutos",
+      "introVoice": "Vamos respirar juntas. Inspire contando ate quatro e solte em seis. Eu vou marcar cada segundo com voce.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Preparar o corpo",
+          "texto": "Sente-se confortavel, descruze as pernas, apoie os pes no chao.",
+          "voiceScript": "Sente-se de forma confortavel. Descruze as pernas e deixe os pes tocando o chao.",
+          "animacao": {"tipo": "fade", "duracaoMs": 2000},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 2,
+          "titulo": "Inspirar por quatro",
+          "texto": "Inspire pelo nariz por quatro segundos enquanto o circulo expande.",
+          "voiceScript": "Inspire pelo nariz. Um... dois... tres... quatro.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4, "ritmo": "linear"},
+          "animacao": {"tipo": "pulse_expand", "ciclos": 1, "duracaoMs": 4000},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 3,
+          "titulo": "Soltar por seis",
+          "texto": "Solte o ar pela boca em seis segundos, visualize a tensao indo embora.",
+          "voiceScript": "Solte devagar pela boca. Um... dois... tres... quatro... cinco... seis. Deixe a tensao sair.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 6, "ritmo": "linear"},
+          "animacao": {"tipo": "pulse_shrink", "ciclos": 1, "duracaoMs": 6000},
+          "haptica": "suave"
+        },
+    {
+      "id": "breath_guided_step",
+      "name": "Respiracao guiada passo a passo",
+      "objetivo": "Oferecer orientacao oral detalhada para estabilizar corpo e mente",
+      "quandoUsar": ["inicio do dia", "apos noticia dificil", "antes de conversa importante"],
+      "duracaoEstimada": "4 minutos",
+      "introVoice": "Vou guiar cada movimento com a minha voz. Basta me escutar e seguir devagar.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Ajustar postura",
+          "texto": "Endireite a coluna e relaxe os ombros.",
+          "voiceScript": "Sente-se com a coluna ereta. Solte os ombros, descruze os bracos e coloque as maos sobre as coxas.",
+          "animacao": {"tipo": "outline_corpo", "foco": "coluna"},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 2,
+          "titulo": "Inspiração suave",
+          "texto": "Inspire pelo nariz por cinco segundos enquanto a barra sobe.",
+          "voiceScript": "Vamos inspirar juntas. Pelo nariz, conte comigo: um... dois... tres... quatro... cinco. Expanda o peito sem forcar.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 5},
+          "animacao": {"tipo": "barra_vertical", "duracaoMs": 5000},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 3,
+          "titulo": "Pausa ativa",
+          "texto": "Segure o ar por dois segundos e perceba o corpo.",
+          "voiceScript": "Segure o ar gentilmente por dois segundos. Sinta o ar apoiando o peito.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 2},
+          "animacao": {"tipo": "pulse_glow", "duracaoMs": 2000}
+        },
+        {
+          "ordem": 4,
+          "titulo": "Exalação dirigida",
+          "texto": "Solte o ar pela boca por sete segundos; a cor muda indicando o ritmo.",
+          "voiceScript": "Agora solte pela boca como se soprasse uma vela distante. Conte comigo: um... dois... tres... quatro... cinco... seis... sete.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 7},
+          "animacao": {"tipo": "gradiente_descendo", "duracaoMs": 7000},
+          "haptica": "suave"
+        },
+        {
+          "ordem": 5,
+          "titulo": "Varredura corporal",
+          "texto": "Percorra mentalmente ombros, peito e abdomen enquanto respira normalmente.",
+          "voiceScript": "Respire no seu ritmo e escaneie o corpo. Comece pelos ombros, desça para o peito e termine na barriga. Observe qualquer alivio, mesmo que pequeno.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 20},
+          "animacao": {"tipo": "scan_luz", "duracaoMs": 20000}
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Preciso ouvir novamente", "acao": "repeatStep"},
+        {"tipo": "botao", "rotulo": "Pronto para o proximo passo", "acao": "nextStep"}
+      ],
+      "respostaEmpaticaFinal": "Voce acompanhou cada passo com presenca. Isso ja e cuidado consigo mesma.",
+      "respostaEmpaticaFinalVoice": "Obrigada por permitir que eu te guiasse. Quer compartilhar como ficou agora?",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se sentir tontura ou formigamento, pare e respire normalmente. Este guia nao substitui acompanhamento profissional." 
+    }
+        {
+          "ordem": 4,
+          "titulo": "Repetir ciclos",
+          "texto": "Repita de cinco a oito ciclos seguindo o marcador de tempo.",
+          "voiceScript": "Vamos repetir o ciclo mais algumas vezes. Eu conto com voce.",
+          "temporizador": {"tipo": "loop", "ciclos": 6, "duracaoCicloSegundos": 10},
+          "animacao": {"tipo": "loop_wave", "ciclos": 6},
+          "haptica": "leve"
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Iniciar", "acao": "startCycle"},
+        {"tipo": "botao", "rotulo": "Preciso de ritmo mais lento", "acao": "slowDown"}
+      ],
+      "respostaEmpaticaFinal": "Voce respirou comigo com coragem. Como seu corpo esta agora? Pode me contar.",
+      "respostaEmpaticaFinalVoice": "Perceba seu corpo e me conte como se sente agora. Eu continuo aqui.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Este exercicio nao substitui apoio profissional. Se a respiracao estiver muito dificil, busque ajuda presencial." 
+    },
+    {
+      "id": "breath_box_calm",
+      "name": "Respiracao em Caixa",
+      "objetivo": "Equilibrar sistema nervoso com ritmo constante",
+      "quandoUsar": ["estresse", "mente acelerada", "dificuldade de concentracao"],
+      "duracaoEstimada": "4 minutos",
+      "introVoice": "Vamos desenhar uma caixa com a respiracao. Quatro segundos para cada lado. Eu sigo com voce.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Inspire 4s",
+          "voiceScript": "Inspire pelo nariz. Conto ate quatro com voce.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "linha_horizontal", "fase": "subir"}
+        },
+        {
+          "ordem": 2,
+          "titulo": "Segure 4s",
+          "voiceScript": "Segure o ar de forma gentil. Um... dois... tres... quatro.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "linha_vertical", "fase": "direita"},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 3,
+          "titulo": "Expire 4s",
+          "voiceScript": "Solte o ar pela boca enquanto fechamos a caixa.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "linha_horizontal", "fase": "descer"}
+        },
+        {
+          "ordem": 4,
+          "titulo": "Pausa 4s",
+          "voiceScript": "Fique em silencio por quatro segundos. Apenas observe.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "linha_vertical", "fase": "esquerda"},
+          "haptica": "leve"
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Iniciar caixa", "acao": "startBox"},
+        {"tipo": "botao", "rotulo": "Quero guia mais lento", "acao": "slowGuide"}
+      ],
+      "respostaEmpaticaFinal": "Voce completou a caixa. Percebe alguma mudanca no ritmo interno? Estou aqui para ouvir.",
+      "respostaEmpaticaFinalVoice": "Note o ritmo do seu corpo agora e me conte se algo mudou.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Pare se sentir tontura ou desconforto intenso. Este cuidado nao substitui acompanhamento profissional." 
+    },
+    {
+      "id": "breath_panic_soothing",
+      "name": "Respiracao para crise de panico",
+      "objetivo": "Reduzir hiperventilacao e confusao em crise",
+      "quandoUsar": ["crise de panico", "palpitacao forte", "sensacao de risco"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Eu sei que esta dificil. Vamos reduzir a velocidade juntas. Eu acompanho cada segundo, voce nao esta so.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Contato com o corpo",
+          "voiceScript": "Coloque a mao no peito e outra na barriga. Sinta o toque gentil.",
+          "animacao": {"tipo": "outline_corpo", "foco": "peito"},
+          "haptica": "suave"
+        },
+        {
+          "ordem": 2,
+          "titulo": "Inspire 3s",
+          "voiceScript": "Inspire o mais suave que conseguir. Um... dois... tres.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 3},
+          "animacao": {"tipo": "pulse_expand", "duracaoMs": 3000}
+        },
+        {
+          "ordem": 3,
+          "titulo": "Solte 5s",
+          "voiceScript": "Agora solte devagar, como se apagasse uma vela bem lentamente. Conto ate cinco.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 5},
+          "animacao": {"tipo": "pulse_shrink", "duracaoMs": 5000}
+        },
+        {
+          "ordem": 4,
+          "titulo": "Pausa 2s",
+          "voiceScript": "Descanse por dois segundos. Tudo bem se o corpo tremer. Estou com voce.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 2}
+        },
+        {
+          "ordem": 5,
+          "titulo": "Repetir com frase calmante",
+          "voiceScript": "Repita comigo enquanto respira: Eu estou aqui, esta sensacao passa.",
+          "temporizador": {"tipo": "loop", "ciclos": 8, "duracaoCicloSegundos": 10},
+          "animacao": {"tipo": "glow_suave", "ciclos": 8}
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Comecar agora", "acao": "startPanicRoutine"},
+        {"tipo": "botao", "rotulo": "Preciso parar", "acao": "pauseRoutine"}
+      ],
+      "respostaEmpaticaFinal": "Obrigada por ficar comigo. O corpo pode continuar acelerado, mas voce ja deu um passo importante.",
+      "respostaEmpaticaFinalVoice": "Respire fundo mais uma vez e diga para si: eu me acolho agora. Como posso te apoiar daqui para frente?",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se os sintomas continuarem muito fortes, busque ajuda presencial ou ligue para um servico de emergencia." 
+    },
+    {
+      "id": "breath_sleep_flow",
+      "name": "Respiracao para dormir",
+      "objetivo": "Relaxar corpo e mente antes de dormir",
+      "quandoUsar": ["insomnia", "mente acelerada a noite", "dificuldade para relaxar"],
+      "duracaoEstimada": "7 minutos",
+      "introVoice": "Vamos desacelerar para o sono. Imagine um lugar calmo e deixe meu ritmo te conduzir.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Ambientar",
+          "voiceScript": "Deite-se ou sente-se apoiando as costas. Feche os olhos se se sentir seguro.",
+          "animacao": {"tipo": "fade_dark", "duracaoMs": 3000}
+        },
+        {
+          "ordem": 2,
+          "titulo": "Inspirar luz",
+          "voiceScript": "Inspire contando ate quatro. Imagine uma luz morna entrando.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "glow_expand", "cor": "dourado"}
+        },
+        {
+          "ordem": 3,
+          "titulo": "Soltar peso",
+          "voiceScript": "Expire por seis segundos. Sinta o corpo ficando mais pesado sobre a cama.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 6},
+          "animacao": {"tipo": "fade_down", "duracaoMs": 6000}
+        },
+        {
+          "ordem": 4,
+          "titulo": "Pausa suave",
+          "voiceScript": "Fique dois segundos em silencio. Apenas sinta o peso do corpo.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 2}
+        },
+        {
+          "ordem": 5,
+          "titulo": "Repeticao guiada",
+          "voiceScript": "Repita comigo por mais cinco ciclos. Luz entra, tensao sai.",
+          "temporizador": {"tipo": "loop", "ciclos": 5, "duracaoCicloSegundos": 12}
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Iniciar relaxamento", "acao": "startSleep"},
+        {"tipo": "toggle", "rotulo": "Vibracao leve", "acao": "toggleHaptics"}
+      ],
+      "respostaEmpaticaFinal": "Se o sono vier, deixe o app fechado e descanse. Estou feliz por voce cuidar de si.",
+      "respostaEmpaticaFinalVoice": "Se o sono estiver chegando, apenas se entregue. Eu fico aqui em silencio quando voce quiser.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Nao utilize este exercicio em situacoes que exijam alerta, como dirigir." 
+    },
+    {
+      "id": "breath_visual_light",
+      "name": "Respiracao com visualizacao",
+      "objetivo": "Usar imaginacao para liberar tensao",
+      "quandoUsar": ["rigidez corporal", "tristeza", "preocupacao constante"],
+      "duracaoEstimada": "6 minutos",
+      "introVoice": "Vamos imaginar luz entrando e tensao saindo com a respiracao.",
+      "passos": [
+        {
+          "ordem": 1,
+          "titulo": "Criar cena",
+          "voiceScript": "Imagine uma luz suave entrando pelos pes e subindo.",
+          "animacao": {"tipo": "gradiente_subindo", "duracaoMs": 5000}
+        },
+        {
+          "ordem": 2,
+          "titulo": "Inspire luz",
+          "voiceScript": "Inspire por quatro segundos puxando essa luz quente.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "animacao": {"tipo": "wave_vertical", "ciclos": 1}
+        },
+        {
+          "ordem": 3,
+          "titulo": "Expire tensao",
+          "voiceScript": "Solte o ar por seis segundos imaginando a tensao como fumaca cinza descendo e saindo pela sola dos pes.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 6},
+          "animacao": {"tipo": "fade_descer", "duracaoMs": 6000}
+        },
+        {
+          "ordem": 4,
+          "titulo": "Selar o corpo",
+          "voiceScript": "No final de cada ciclo, diga mentalmente: Eu me cuido agora.",
+          "temporizador": {"tipo": "loop", "ciclos": 6, "duracaoCicloSegundos": 12}
+        }
+      ],
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Comecar visualizacao", "acao": "startVisualization"},
+        {"tipo": "botao", "rotulo": "Quero mais tempo", "acao": "extendCycle"}
+      ],
+      "respostaEmpaticaFinal": "Obrigada por imaginar junto comigo. Note se existe algum ponto do corpo que relaxou um pouco.",
+      "respostaEmpaticaFinalVoice": "Observe o corpo mais uma vez e escolha guardar essa luz com voce.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se surgirem memorias desconfortaveis, retorne ao foco na respiracao simples." 
+    }
+  ],
+  "grounding": [
+    {
+      "id": "ground_54321_senses",
+      "name": "Cinco sentidos",
+      "objetivo": "Ancorar no presente usando sentidos",
+      "quandoUsar": ["ansiedade alta", "dissociacao", "pensamentos ruminativos"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Vou te guiar pelos sentidos. Olhe ao redor e responda tocando na tela ou falando comigo.",
+      "passos": [
+        {
+          "ordem": 1,
+          "prompt": "Conte cinco coisas que voce esta vendo agora.",
+          "voiceScript": "Olhe ao redor. Toque na tela para cada coisa que voce ve.",
+          "interacao": {"tipo": "lista", "maxItens": 5, "entrada": "texto_ou_audio"}
+        },
+        {
+          "ordem": 2,
+          "prompt": "Quatro coisas que voce pode tocar.",
+          "voiceScript": "Agora toque em algo e conte a sensacao. Eu espero por voce.",
+          "interacao": {"tipo": "lista", "maxItens": 4}
+        },
+        {
+          "ordem": 3,
+          "prompt": "Tres sons que esta ouvindo.",
+          "voiceScript": "Escute em volta. Pode ser algo distante ou bem perto.",
+          "interacao": {"tipo": "lista", "maxItens": 3}
+        },
+        {
+          "ordem": 4,
+          "prompt": "Duas coisas que sente no corpo.",
+          "voiceScript": "Repare em um ponto de contato. Talvez o apoio das costas ou a textura da roupa.",
+          "interacao": {"tipo": "lista", "maxItens": 2}
+        },
+        {
+          "ordem": 5,
+          "prompt": "Uma coisa que voce pode saborear ou lembrar do sabor.",
+          "voiceScript": "Pode ser agua, menta ou apenas lembrar de um sabor que goste.",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        }
+      ],
+      "validacaoFinal": "Voce conseguiu trazer a mente para o aqui e agora. Obrigada por compartilhar cada detalhe.",
+      "validacaoFinalVoice": "Perceba como sua atencao voltou para o presente. Como esta se sentindo agora?",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se ficar dificil se concentrar nos sentidos, volte para uma respiracao lenta antes de tentar de novo." 
+    },
+    {
+      "id": "ground_nomear_objetos",
+      "name": "Nomear objetos",
+      "objetivo": "Reduzir confusao mental descrevendo o ambiente",
+      "quandoUsar": ["ansiedade", "sensacao de irrealidade", "preocupacao"],
+      "duracaoEstimada": "3 minutos",
+      "introVoice": "Vamos nomear objetos simples. Eu faco perguntas e voce responde com toques ou voz.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Qual o objeto mais proximo da sua mao direita?",
+          "interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Agora descreva algo que tenha uma cor marcante na sua frente.",
+          "interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Quero que toque em um objeto frio ou liso e me conte como e a textura.",
+          "interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        }
+      ],
+      "validacaoFinal": "Obrigada por nomear esses itens comigo. Sua mente ja esta percebendo o lugar em volta.",
+      "validacaoFinalVoice": "Eu continuo aqui. Respire e perceba o ambiente que te sustenta agora.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se notar aumento do desconforto, pare e procure um lugar seguro ou apoio humano." 
+    },
+    {
+      "id": "ground_press_feet",
+      "name": "Pressionar pes no chao",
+      "objetivo": "Estabilizar corpo com ancoragem fisica",
+      "quandoUsar": ["dissociacao", "tontura emocional", "sensacao de flutuar"],
+      "duracaoEstimada": "4 minutos",
+      "introVoice": "Vamos usar os pes para lembrar que voce esta aqui. Siga minha voz.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Sente-se ereto com os pes planos no chao.",
+          "interacao": {"tipo": "confirmacao", "rotulo": "Posicionei"}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Pressione os pes contra o chao por cinco segundos. Eu conto com voce.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 5},
+          "haptica": "moderada"
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Solte a pressao e observe a sensacao nas solas dos pes por quatro segundos.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4}
+        },
+        {
+          "ordem": 4,
+          "voiceScript": "Repita mais quatro vezes comigo." ,
+          "temporizador": {"tipo": "loop", "ciclos": 4, "duracaoCicloSegundos": 9}
+        }
+      ],
+      "validacaoFinal": "Voce segurou o chao com seus pes. Obrigada por tentar.",
+      "validacaoFinalVoice": "Sinta a estabilidade por mais um instante. Quando quiser seguimos para o proximo passo.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Pare se sentir dor ou formigamento excessivo e mova os pes suavemente." 
+    },
+    {
+      "id": "ground_toque_anconragem",
+      "name": "Ancoragem pelo toque",
+      "objetivo": "Usar o tato para reduzir agitacao emocional",
+      "quandoUsar": ["choro intenso", "raiva", "agito"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Vamos usar o toque para trazer conforto. Escolha um objeto macio ou firme perto de voce.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Pegue um objeto seguro. Pode ser uma almofada, caneca ou a propria roupa.",
+          "interacao": {"tipo": "confirmacao", "rotulo": "Estou segurando"}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Passe a mao lentamente sobre o objeto por quinze segundos. Eu acompanho esse tempo.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 15},
+          "animacao": {"tipo": "barra_progresso", "duracaoMs": 15000}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Agora pressione o objeto contra o peito e respire fundo comigo por quatro segundos.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 4},
+          "haptica": "leve"
+        },
+        {
+          "ordem": 4,
+          "voiceScript": "Solte a pressao e conte uma palavra gentil para si mesma.",
+          "interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        }
+      ],
+      "validacaoFinal": "Percebo seu cuidado ao se tocar com gentileza. Estou aqui para continuar com voce.",
+      "validacaoFinalVoice": "Respire e perceba o calor do objeto ou das suas maos. Como se sente agora?", 
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Escolha apenas objetos seguros. Este apoio nao substitui ajuda profissional." 
+    }
+  ],
+  "tcc": [
+    {
+      "id": "tcc_identificar_pensamento",
+      "name": "Identificar pensamento automatico",
+      "objetivo": "Trazer a tona o pensamento disparador" ,
+      "quandoUsar": ["ansiedade", "culpa", "auto-critica"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Vamos identificar o pensamento que apareceu. Eu pergunto com calma e voce responde no seu ritmo.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Qual foi a situacao que aconteceu momentos antes de voce se sentir assim?",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Qual pensamento passou pela sua mente naquele instante? Escreva ou fale usando suas palavras.",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Como esse pensamento fez voce se sentir no corpo?"
+          ,"interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        }
+      ],
+      "respostaEmpaticaFinal": "Obrigada por compartilhar. Identificar o pensamento ja e um passo de autocuidado.",
+      "respostaEmpaticaFinalVoice": "Percebo o quanto isso importa para voce. Vamos continuar se desejar.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Este processo nao substitui psicoterapia. Procure apoio profissional se o sofrimento continuar intenso." 
+    },
+    {
+      "id": "tcc_evidencias",
+      "name": "Avaliar evidencias",
+      "objetivo": "Equilibrar o pensamento analisando fatos",
+      "quandoUsar": ["pensamento catastrofico", "auto-culpa", "medo"],
+      "duracaoEstimada": "6 minutos",
+      "introVoice": "Vamos olhar para as evidencias juntas. Eu faco perguntas simples e voce responde no seu ritmo.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Liste tres fatos que apoiam esse pensamento.",
+          "interacao": {"tipo": "lista", "maxItens": 3}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Agora liste tres fatos que mostram o contrario ou parcialmente o contrario.",
+          "interacao": {"tipo": "lista", "maxItens": 3}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Existe alguem de confianca que veria essa situacao de um jeito diferente? Como seria?",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        }
+      ],
+      "respostaEmpaticaFinal": "Voce conseguiu olhar para os dois lados da historia. Isso mostra coragem e equilibrio.",
+      "respostaEmpaticaFinalVoice": "Respire e perceba como o pensamento soa agora. Estou aqui se quiser continuar.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se sentir confusao ou angustia, pare por alguns minutos e considere buscar apoio humano." 
+    },
+    {
+      "id": "tcc_pensamento_alternativo",
+      "name": "Pensamento alternativo",
+      "objetivo": "Criar interpretacao mais realista e gentil",
+      "quandoUsar": ["culpa", "vergonha", "auto-critica"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Com base no que voce escreveu, vamos construir um pensamento alternativo.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Diante dos fatos que levantou, qual frase mais equilibrada voce pode criar?",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Leia em voz alta para si mesma com gentileza. Eu fico em silencio por cinco segundos para voce repetir.",
+          "temporizador": {"tipo": "contador", "duracaoSegundos": 5}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "De zero a dez, qual o nivel de credibilidade desse novo pensamento?",
+          "interacao": {"tipo": "slider", "intervalo": [0, 10]}
+        }
+      ],
+      "respostaEmpaticaFinal": "Obrigada por ensaiar um olhar diferente. Cada tentativa fortalece seu cuidado consigo mesma.",
+      "respostaEmpaticaFinalVoice": "Perceba a diferenca no seu tom interno. Estou orgulhosa do esforco que voce fez agora.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se o pensamento alternativo parecer inacessivel, tudo bem. Converse com um profissional quando puder." 
+    }
+  ],
+  "dbt": [
+    {
+      "id": "dbt_nomear_emocao",
+      "name": "Nomear emocao",
+      "objetivo": "Reconhecer e validar a emocao presente",
+      "quandoUsar": ["raiva", "tristeza intensa", "confusao"],
+      "duracaoEstimada": "4 minutos",
+      "introVoice": "Vamos nomear a emocao que esta aqui. Eu te acompanho passo a passo.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Qual emocao parece mais forte agora? Escolha ou descreva com suas palavras.",
+          "interacao": {"tipo": "lista_opcoes", "opcoes": ["raiva", "tristeza", "ansiedade", "medo", "culpa", "outra"]}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Onde essa emocao aparece no seu corpo?",
+          "interacao": {"tipo": "entrada", "formato": "texto_curto"}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Se essa emocao pudesse falar com voce, o que diria?",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        }
+      ],
+      "respostaEmpaticaFinal": "Voce deu um nome e ouviu a emocao. Isso ja regula um pouco o que sente.",
+      "respostaEmpaticaFinalVoice": "Respire e agradeca a si mesma por reconhecer o que esta vivo dentro de voce.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se notar vontade de se machucar, procure ajuda emergencial imediatamente." 
+    },
+    {
+      "id": "dbt_intensidade",
+      "name": "Escala de intensidade",
+      "objetivo": "Medir intensidade da emocao e acompanhar mudancas",
+      "quandoUsar": ["emocao fora do controle", "crise iminente", "apos conflito"],
+      "duracaoEstimada": "3 minutos",
+      "introVoice": "Vamos avaliar a intensidade da sua emocao em uma escala de zero a dez.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Em zero a dez, quanto essa emocao esta presente agora?",
+          "interacao": {"tipo": "slider", "intervalo": [0, 10]}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "O que tornaria esse numero um ponto mais baixo? Pense em algo pequeno que ajude.",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        }
+      ],
+      "respostaEmpaticaFinal": "Obrigada por medir com honestidade. Cada ponto conta na regulacao.",
+      "respostaEmpaticaFinalVoice": "Perceba que voce tem ideias para diminuir um pouco essa intensidade. Eu posso lembrar disso com voce quando precisar.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Se a intensidade estiver acima de oito por muito tempo, considere contato com um profissional." 
+    },
+    {
+      "id": "dbt_autocuidado",
+      "name": "Plano de autocuidado imediato",
+      "objetivo": "Definir uma acao concreta de cuidado",
+      "quandoUsar": ["emocao confusa", "sensacao de vazio", "apos nomear emocao"],
+      "duracaoEstimada": "5 minutos",
+      "introVoice": "Vamos escolher um passo gentil para cuidar de voce agora.",
+      "passos": [
+        {
+          "ordem": 1,
+          "voiceScript": "Qual e a necessidade mais urgente do seu corpo neste momento? Sono, alimento, agua ou descanso?",
+          "interacao": {"tipo": "lista_opcoes", "opcoes": ["sono", "alimento", "agua", "descanso", "outra"]}
+        },
+        {
+          "ordem": 2,
+          "voiceScript": "Que pequena acao voce pode fazer nos proximos dez minutos para cuidar disso?",
+          "interacao": {"tipo": "entrada", "formato": "texto"}
+        },
+        {
+          "ordem": 3,
+          "voiceScript": "Deseja que eu te lembre dessa acao daqui a alguns minutos?",
+          "interacao": {"tipo": "toggle", "rotulo": "Ativar lembrete"}
+        }
+      ],
+      "respostaEmpaticaFinal": "Voce escolheu um cuidado realista. Eu posso comemorar esse passo com voce.",
+      "respostaEmpaticaFinalVoice": "Parabens por se comprometer com algo concreto. Quando quiser, me chame para acompanhar.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Este plano nao substitui acompanhamento terapeutico. Se sentir urgencia de se machucar, busque apoio imediato." 
+    }
+  ],
+  "miniGames": [
+    {
+      "id": "game_breath_ball",
+      "name": "Respire com a bolinha",
+      "objetivo": "Criar ritmo de respiracao com foco visual",
+      "quandoUsar": ["ansiedade", "tensao corporal", "pausa rapida"],
+      "duracaoEstimada": "2 a 4 minutos",
+      "introVoice": "Uma bolinha vai crescer quando inspiramos e diminuir quando expiramos. Siga minha contagem.",
+      "mecanica": {
+        "descricao": "Bolinha aumenta em quatro segundos e diminui em seis, com brilho suave.",
+        "vozDuranteJogo": [
+          "Inspire enquanto a bolinha cresce. Eu conto ate quatro.",
+          "Expire devagar enquanto ela encolhe. Eu conto ate seis."
+        ],
+        "temporizador": {"tipo": "loop", "duracaoCicloSegundos": 10, "ciclos": 6},
+        "haptica": "leve"
+      },
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Iniciar bolinha", "acao": "startBall"},
+        {"tipo": "botao", "rotulo": "Pausar", "acao": "pause"}
+      ],
+      "respostaEmpaticaFinal": "Obrigada por acompanhar a bolinha. Como esta sua respiracao agora?",
+      "respostaEmpaticaFinalVoice": "Respire mais uma vez e observe se o corpo segue o ritmo da bolinha.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Nao recomendavel para quem tem tontura frequente. Pausar se sentir desconforto." 
+    },
+    {
+      "id": "game_toque_calmo",
+      "name": "Toque calmo",
+      "objetivo": "Regular agitacao atraves de movimentos lentos",
+      "quandoUsar": ["agito", "impulsividade", "dificuldade de ficar parado"],
+      "duracaoEstimada": "3 minutos",
+      "introVoice": "Desenhe na tela acompanhando o ritmo que eu narro. Vamos seguir devagar.",
+      "mecanica": {
+        "descricao": "Usuario desliza o dedo seguindo trilha luminosa que acende e apaga.",
+        "vozDuranteJogo": [
+          "Deslize seu dedo ate o proximo ponto. Sem pressa.",
+          "Pausa. Respire comigo antes de seguir para o proximo caminho."
+        ],
+        "ritmo": {"tempoPorSegmentoMs": 5000, "pausaEntreSegmentosMs": 2000},
+        "haptica": "leve"
+      },
+      "interacoesUsuario": [
+        {"tipo": "botao", "rotulo": "Iniciar trajeto", "acao": "startPath"},
+        {"tipo": "botao", "rotulo": "Reiniciar", "acao": "reset"}
+      ],
+      "respostaEmpaticaFinal": "Percebi sua dedicacao em seguir o ritmo. Obrigada por tentar.",
+      "respostaEmpaticaFinalVoice": "Observe suas maos. Elas ficaram mais lentas? Compartilhe comigo se quiser.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Nao usar durante atividades que exijam atencao externa, como caminhar em locais movimentados." 
+    },
+    {
+      "id": "game_cores_calma",
+      "name": "Cores da calma",
+      "objetivo": "Expressar estado emocional escolhendo cores",
+      "quandoUsar": ["tristeza", "confusao emocional", "pratica diaria"],
+      "duracaoEstimada": "2 minutos",
+      "introVoice": "Vou mostrar cores suaves. Escolha a que representa como voce esta agora e eu comento com carinho.",
+      "mecanica": {
+        "descricao": "Paleta de cores calmas. Cada selecao dispara mensagem de validacao.",
+        "vozDuranteJogo": [
+          "Toque na cor que combina com seu momento.",
+          "Se quiser, escolha mais de uma e eu acompanho suas mudancas."
+        ]
+      },
+      "interacoesUsuario": [
+        {"tipo": "grid_cores", "rotulo": "Escolher cor", "acao": "selectColor"}
+      ],
+      "respostaEmpaticaFinal": "Eu acolho a cor que voce escolheu. Obrigada por compartilhar esse pedaco de como se sente.",
+      "respostaEmpaticaFinalVoice": "Leve essa cor com voce pelos proximos minutos. Quando quiser, me chame novamente.",
+      "opcoesFinais": ["Repetir", "Outro exercicio", "Falar com a Clara"],
+      "notaSeguranca": "Este jogo nao substitui suporte profissional. Se notar piora emocional, procure ajuda humana." 
+    }
+  ],
+  "feedback": {
+    "introducaoVoice": "Obrigada por praticar. Quero saber como voce ficou depois deste exercicio.",
+    "perguntas": [
+      {
+        "id": "feedback_momento",
+        "texto": "Como voce se sente agora?",
+        "voiceScript": "Me conta: como voce se sente neste instante?",
+        "tipo": "lista_opcoes",
+        "opcoes": ["mais calma", "igual", "mais tensa", "incerto"]
+      },
+      {
+        "id": "feedback_intensidade",
+        "texto": "Qual o nivel de alivio em zero a dez?",
+        "voiceScript": "Em zero a dez, quanto alivio apareceu?",
+        "tipo": "slider",
+        "intervalo": [0, 10]
+      },
+      {
+        "id": "feedback_proximo",
+        "texto": "Qual proximo passo combina com voce?",
+        "voiceScript": "Qual proximo passo combina com voce agora?",
+        "tipo": "lista_opcoes",
+        "opcoes": ["descansar", "falar com alguem", "anotar como me sinto", "nao sei ainda"]
+      }
+    ],
+    "encerramentoVoice": "Isso nao substitui um profissional, mas continuo aqui com voce. Se precisar de mais apoio humano, busque alguem de confianca."
+  }
+}

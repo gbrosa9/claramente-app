@@ -84,6 +84,13 @@ export default function RegisterPage() {
       if (data.ok) {
         // Verificar se precisa de confirmação de email
         if (data.data?.needsConfirmation) {
+          try {
+            document.cookie = `pendingSignupEmail=${encodeURIComponent(formData.email)}; Path=/; Max-Age=${60 * 15}; SameSite=Lax` + (process.env.NODE_ENV === 'production' ? '; Secure' : '')
+            window.sessionStorage.setItem('pendingSignupEmail', formData.email)
+          } catch (cookieError) {
+            console.warn('Não foi possível armazenar email pendente de confirmação:', cookieError)
+          }
+
           // Redirecionar para página de confirmação de email
           const queryParams = new URLSearchParams({
             email: formData.email

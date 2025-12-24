@@ -34,6 +34,36 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS professional_id UUID,
+  ADD COLUMN IF NOT EXISTS patient_id UUID,
+  ADD COLUMN IF NOT EXISTS type TEXT,
+  ADD COLUMN IF NOT EXISTS message TEXT,
+  ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_professional_id_fkey;
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_patient_id_fkey;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_professional_id_fkey FOREIGN KEY (professional_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS professional_id UUID,
+  ADD COLUMN IF NOT EXISTS patient_id UUID,
+  ADD COLUMN IF NOT EXISTS type TEXT,
+  ADD COLUMN IF NOT EXISTS message TEXT,
+  ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_professional_id_fkey;
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_patient_id_fkey;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_professional_id_fkey FOREIGN KEY (professional_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE notifications
+  ADD CONSTRAINT notifications_patient_id_fkey FOREIGN KEY (patient_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
 -- Índices para performance
 CREATE INDEX IF NOT EXISTS idx_follow_codes_code ON follow_codes(code);
 CREATE INDEX IF NOT EXISTS idx_follow_codes_patient_id ON follow_codes(patient_id);
@@ -48,59 +78,65 @@ ALTER TABLE follow_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE patient_professionals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- Policy: Pacientes podem criar seus próprios códigos
+DROP POLICY IF EXISTS "Pacientes podem criar códigos" ON follow_codes;
 CREATE POLICY "Pacientes podem criar códigos"
 ON follow_codes FOR INSERT
 TO authenticated
-WITH CHECK (auth.uid() = patient_id);
+WITH CHECK (auth.uid()::text = patient_id::text);
 
--- Policy: Pacientes podem ver seus próprios códigos
+DROP POLICY IF EXISTS "Pacientes podem ver seus códigos" ON follow_codes;
 CREATE POLICY "Pacientes podem ver seus códigos"
 ON follow_codes FOR SELECT
 TO authenticated
-USING (auth.uid() = patient_id);
+USING (auth.uid()::text = patient_id::text);
 
--- Policy: Profissionais podem resgatar códigos
+DROP POLICY IF EXISTS "Profissionais podem resgatar códigos" ON follow_codes;
 CREATE POLICY "Profissionais podem resgatar códigos"
 ON follow_codes FOR UPDATE
 TO authenticated
-USING (used_by IS NULL OR auth.uid() = used_by);
+USING (used_by IS NULL OR auth.uid()::text = used_by::text);
 
 -- Policy: Pacientes podem ver seus profissionais
+DROP POLICY IF EXISTS "Pacientes podem ver seus profissionais" ON patient_professionals;
 CREATE POLICY "Pacientes podem ver seus profissionais"
 ON patient_professionals FOR SELECT
 TO authenticated
-USING (auth.uid() = patient_id);
+USING (auth.uid()::text = patient_id::text);
 
 -- Policy: Profissionais podem ver seus pacientes
+DROP POLICY IF EXISTS "Profissionais podem ver seus pacientes" ON patient_professionals;
 CREATE POLICY "Profissionais podem ver seus pacientes"
 ON patient_professionals FOR SELECT
 TO authenticated
-USING (auth.uid() = professional_id);
+USING (auth.uid()::text = professional_id::text);
 
 -- Policy: Profissionais podem criar vínculos
+DROP POLICY IF EXISTS "Profissionais podem criar vínculos" ON patient_professionals;
 CREATE POLICY "Profissionais podem criar vínculos"
 ON patient_professionals FOR INSERT
 TO authenticated
-WITH CHECK (auth.uid() = professional_id);
+WITH CHECK (auth.uid()::text = professional_id::text);
 
 -- Policy: Pacientes podem remover profissionais
+DROP POLICY IF EXISTS "Pacientes podem remover profissionais" ON patient_professionals;
 CREATE POLICY "Pacientes podem remover profissionais"
 ON patient_professionals FOR DELETE
 TO authenticated
-USING (auth.uid() = patient_id);
+USING (auth.uid()::text = patient_id::text);
 
 -- Policy: Profissionais podem ver suas notificações
+DROP POLICY IF EXISTS "Profissionais podem ver notificações" ON notifications;
 CREATE POLICY "Profissionais podem ver notificações"
 ON notifications FOR SELECT
 TO authenticated
-USING (auth.uid() = professional_id);
+USING (auth.uid()::text = professional_id::text);
 
 -- Policy: Profissionais podem atualizar notificações
+DROP POLICY IF EXISTS "Profissionais podem atualizar notificações" ON notifications;
 CREATE POLICY "Profissionais podem atualizar notificações"
 ON notifications FOR UPDATE
 TO authenticated
-USING (auth.uid() = professional_id);
+USING (auth.uid()::text = professional_id::text);
 
 -- Function: Criar notificação quando profissional é vinculado
 CREATE OR REPLACE FUNCTION notify_new_link()

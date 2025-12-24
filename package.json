@@ -27,8 +27,7 @@
     "docker:clean": "docker-compose down -v",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "type-check": "tsc --noEmit",
-    "postinstall": "prisma generate"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -137,6 +136,7 @@
     "postcss": "^8.5",
     "prettier": "^3.3.3",
     "prisma": "^5.22.0",
+    "supabase": "^2.67.1",
     "supertest": "^7.0.0",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.19.1",

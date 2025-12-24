@@ -3,7 +3,14 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { createAuthClient } from '@/lib/supabase/auth'
 
+const authSecret = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
+
+if (!authSecret) {
+  console.warn('NEXTAUTH_SECRET/JWT_SECRET is not configured. Set it in your environment to enable secure sessions.')
+}
+
 export const authOptions: NextAuthOptions = {
+  secret: authSecret,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -64,7 +71,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 8 * 60 * 60, // 8 hours
   },
   jwt: {
-    secret: process.env.JWT_SECRET,
+    secret: authSecret,
     maxAge: 8 * 60 * 60, // 8 hours
   },
   callbacks: {

@@ -1,8 +1,12 @@
-import { PrismaClient } from '@prisma/client'
+import type { PrismaClient as PrismaClientType } from '@prisma/client'
 import { logger } from '../lib/logger'
 
+// Avoid static ESM re-export detection by requiring Prisma at runtime.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { PrismaClient } = require('@prisma/client') as { PrismaClient: typeof PrismaClientType }
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+  prisma: PrismaClientType | undefined
 }
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
@@ -34,5 +38,3 @@ export async function healthCheck(): Promise<boolean> {
     return false
   }
 }
-
-export * from '@prisma/client'
