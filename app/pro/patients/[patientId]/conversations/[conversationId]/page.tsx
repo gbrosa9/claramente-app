@@ -1,16 +1,24 @@
-import PatientConversationClient from './PatientConversationClient'
+import React from "react";
 
-interface PageParams {
-  patientId: string
-  conversationId: string
-}
+type Params = {
+  patientId: string;
+  conversationId: string;
+};
 
-export default async function Page({ params }: { params: Promise<PageParams> }) {
-  const resolvedParams = await params
+export default function ConversationPage({
+  params,
+}: {
+  params: Params;
+}) {
   return (
-    <PatientConversationClient
-      patientId={resolvedParams.patientId}
-      conversationId={resolvedParams.conversationId}
-    />
-  )
+    <main className="min-h-screen bg-white p-6">
+      <h1 className="text-2xl font-bold">Conversa</h1>
+      <p className="mt-2 text-slate-600">
+        Patient: <span className="font-mono">{params.patientId}</span>
+      </p>
+      <p className="text-slate-600">
+        Conversation: <span className="font-mono">{params.conversationId}</span>
+      </p>
+    </main>
+  );
 }
