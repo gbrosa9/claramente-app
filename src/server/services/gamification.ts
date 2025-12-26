@@ -54,9 +54,15 @@ function logMissingGamificationModels() {
 function getGamificationClient() {
   const client = prisma as PrismaWithGamification
 
-  const hasCatalog = Boolean(client.exerciseCatalog?.findMany && client.exerciseCatalog?.upsert)
-  const hasSession = Boolean(client.exerciseSession?.findFirst && client.exerciseSession?.findMany)
-  const hasGamification = Boolean(client.userGamification?.upsert && client.userGamification?.update)
+  const hasCatalog =
+    typeof client.exerciseCatalog?.findMany === 'function' &&
+    typeof client.exerciseCatalog?.upsert === 'function'
+  const hasSession =
+    typeof client.exerciseSession?.findFirst === 'function' &&
+    typeof client.exerciseSession?.findMany === 'function'
+  const hasGamification =
+    typeof client.userGamification?.upsert === 'function' &&
+    typeof client.userGamification?.update === 'function'
 
   if (hasCatalog && hasSession && hasGamification) {
     return client as Required<PrismaWithGamification>

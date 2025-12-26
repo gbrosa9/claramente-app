@@ -4,6 +4,13 @@ import { createAdminClient } from '@/lib/supabase/auth'
 
 const TRANSPARENCY_MESSAGE = 'Eventos de crise e detecções automáticas geram métricas para acompanhamento profissional, sem compartilhar o conteúdo das mensagens.'
 
+type RiskSummaryRow = {
+  day: string | Date | null
+  panic_count: number | null
+  detection_count: number | null
+  high_critical_count: number | null
+}
+
 function sumSeries(series: Array<{ date: string; panicCount: number; detectionCount: number; highCriticalCount: number }>, days: number) {
   const cutoff = new Date()
   cutoff.setHours(0, 0, 0, 0)
@@ -79,13 +86,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ pat
       return NextResponse.json({ ok: false, error: 'Erro ao carregar métricas.' }, { status: 500 })
     }
 
-    const series = (rpcData ?? []).map((row) => {
+    const rows: RiskSummaryRow[] = Array.isArray(rpcData) ? (rpcData as RiskSummaryRow[]) : []
+
+    const series = rows.map((row) => {
       const dayValue = row.day instanceof Date ? row.day.toISOString().slice(0, 10) : String(row.day)
       return {
         date: dayValue,
-        panicCount: row.panic_count,
-        detectionCount: row.detection_count,
-        highCriticalCount: row.high_critical_count,
+        panicCount: Number(row.panic_count ?? 0),
+        detectionCount: Number(row.detection_count ?? 0),
+        highCriticalCount: Number(row.high_critical_count ?? 0),
       }
     })
 

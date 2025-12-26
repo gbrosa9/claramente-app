@@ -15,7 +15,10 @@ export async function GET(
     const { patientId, conversationId } = await context.params;
 
     if (!patientId || !conversationId) {
-      return NextResponse.json({ ok: false, error: "Parâmetros inválidos." }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Parâmetros inválidos." },
+        { status: 400 }
+      );
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -28,7 +31,8 @@ export async function GET(
       );
     }
 
-    const cookieStore = cookies(); // ⚠️ não use await aqui
+    // ✅ Compatível com Next 16: cookies() pode ser sync ou async dependendo do build/runtime
+    const cookieStore = await Promise.resolve(cookies());
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,12 +42,14 @@ export async function GET(
           getAll() {
             return cookieStore.getAll();
           },
-          setAll(cookiesToSet) {
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
             try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {}
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch {
+              // ignore
+            }
           },
         },
       }
@@ -55,16 +61,23 @@ export async function GET(
     } = await supabase.auth.getSession();
 
     if (sessionError || !session?.user) {
-      return NextResponse.json({ ok: false, error: "Não autorizado." }, { status: 401 });
+      return NextResponse.json(
+        { ok: false, error: "Não autorizado." },
+        { status: 401 }
+      );
     }
 
     const professionalId = session.user.id;
 
-    const { data: professionalProfile } = await supabase
+    const { data: professionalProfile, error: profError } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", professionalId)
-      .single();
+      .maybeSingle();
+
+    if (profError) {
+      console.warn("Erro ao carregar role do profissional:", profError);
+    }
 
     if (!professionalProfile || professionalProfile.role !== "professional") {
       return NextResponse.json(
@@ -75,7 +88,7 @@ export async function GET(
 
     const adminClient = createAdminClient();
 
-    const { data: link } = await adminClient
+    const { data: link, error: linkError } = await adminClient
       .from("patient_professionals")
       .select("id, status")
       .eq("patient_id", patientId)
@@ -83,8 +96,15 @@ export async function GET(
       .eq("status", "active")
       .maybeSingle();
 
+    if (linkError) {
+      console.warn("Erro ao checar vínculo paciente-profissional:", linkError);
+    }
+
     if (!link) {
-      return NextResponse.json({ ok: false, error: "Nenhum vínculo ativo com este paciente." }, { status: 403 });
+      return NextResponse.json(
+        { ok: false, error: "Nenhum vínculo ativo com este paciente." },
+        { status: 403 }
+      );
     }
 
     const { data: conversation, error: conversationError } = await adminClient
@@ -95,7 +115,10 @@ export async function GET(
       .maybeSingle();
 
     if (conversationError || !conversation) {
-      return NextResponse.json({ ok: false, error: "Conversa não encontrada." }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "Conversa não encontrada." },
+        { status: 404 }
+      );
     }
 
     const { data: messages, error: messagesError } = await adminClient
@@ -107,12 +130,22 @@ export async function GET(
 
     if (messagesError) {
       console.error("Erro ao carregar mensagens:", messagesError);
-      return NextResponse.json({ ok: false, error: "Erro ao carregar mensagens." }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: "Erro ao carregar mensagens." },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true, conversation, messages: messages ?? [] });
+    return NextResponse.json({
+      ok: true,
+      conversation,
+      messages: messages ?? [],
+    });
   } catch (error) {
     console.error("Erro ao carregar conversa do paciente:", error);
-    return NextResponse.json({ ok: false, error: "Erro interno do servidor." }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Erro interno do servidor." },
+      { status: 500 }
+    );
   }
 }

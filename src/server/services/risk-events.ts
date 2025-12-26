@@ -1,5 +1,5 @@
 import { addDays, startOfDay } from 'date-fns'
-import { RiskEventSource, RiskSeverity } from '@prisma/client'
+import { RiskEventSource, RiskSeverity, Prisma } from '@prisma/client'
 import { prisma } from '@/src/server/db'
 
 interface RecordRiskEventInput {
@@ -42,20 +42,25 @@ const DEFAULT_META_WHITELIST = new Set([
   'severity',
 ])
 
-export function sanitizeRiskMeta(meta?: Record<string, unknown> | null) {
+export function sanitizeRiskMeta(meta?: Record<string, unknown> | null): Prisma.JsonObject | null {
   if (!meta || typeof meta !== 'object') {
     return null
   }
 
-  const clean: Record<string, unknown> = {}
+  const clean: Prisma.JsonObject = {}
 
   for (const [key, value] of Object.entries(meta)) {
     const lowerKey = key.toLowerCase()
     if (lowerKey.includes('text') || lowerKey.includes('message') || lowerKey.includes('content')) {
       continue
     }
-    if (DEFAULT_META_WHITELIST.has(key) || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      clean[key] = value
+    if (
+      DEFAULT_META_WHITELIST.has(key) ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      clean[key] = value as Prisma.JsonValue
     }
   }
 
@@ -77,7 +82,7 @@ export async function recordRiskEvent(input: RecordRiskEventInput) {
       source: input.source,
       severity: input.severity,
       signal: safeSignal ?? undefined,
-      meta: safeMeta ?? {},
+      meta: safeMeta ?? Prisma.JsonNull,
       visibleForProfessional: input.visibleForProfessional ?? true,
       createdAt,
     },

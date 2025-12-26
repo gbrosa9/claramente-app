@@ -244,11 +244,20 @@ export async function POST(request: NextRequest) {
         useSSML: true,
       })
 
-    return new NextResponse(audioBuffer, {
+    if (!audioBuffer) {
+      return NextResponse.json(
+        { ok: false, error: 'Falha ao gerar áudio', useBrowserTTS: true },
+        { status: 500 }
+      )
+    }
+
+    const audioBytes = new Uint8Array(audioBuffer)
+
+    return new NextResponse(audioBytes, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Length': audioBuffer.length.toString(),
+        'Content-Length': audioBytes.byteLength.toString(),
         'Content-Disposition': 'inline; filename="clara-voice.mp3"',
           'Cache-Control': 'public, max-age=3600',
           'X-TTS-Provider': 'google',

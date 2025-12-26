@@ -1,13 +1,14 @@
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/src/server/db'
 
 const META_KEY_WHITELIST = new Set(['source', 'provider', 'model', 'duration_ms', 'tokens', 'message_length'])
 
-function sanitizeMeta(meta?: Record<string, unknown> | null) {
+function sanitizeMeta(meta?: Record<string, unknown> | null): Prisma.JsonObject | null {
   if (!meta || typeof meta !== 'object') {
-    return {}
+    return null
   }
 
-  const clean: Record<string, unknown> = {}
+  const clean: Prisma.JsonObject = {}
 
   for (const [key, value] of Object.entries(meta)) {
     const lower = key.toLowerCase()
@@ -15,12 +16,17 @@ function sanitizeMeta(meta?: Record<string, unknown> | null) {
       continue
     }
 
-    if (META_KEY_WHITELIST.has(key) || typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      clean[key] = value
+    if (
+      META_KEY_WHITELIST.has(key) ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      clean[key] = value as Prisma.JsonValue
     }
   }
 
-  return clean
+  return Object.keys(clean).length > 0 ? clean : null
 }
 
 interface TrackEventInput {
@@ -35,7 +41,7 @@ export async function recordUserActivityEvent(input: TrackEventInput) {
     data: {
       userId: input.userId,
       eventType: input.eventType,
-      meta: payload,
+      meta: payload ?? Prisma.JsonNull,
     },
   })
 }

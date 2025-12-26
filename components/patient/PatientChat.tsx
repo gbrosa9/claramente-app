@@ -131,7 +131,7 @@ export function PatientChat({ onCriticalRisk }: PatientChatProps) {
         return
       }
 
-      const normalized = parsed.map((conversation) => {
+      const normalized: Conversation[] = parsed.map((conversation): Conversation => {
         const now = new Date().toISOString()
         return {
           id: typeof conversation.id === 'string' ? conversation.id : crypto.randomUUID(),
@@ -142,13 +142,13 @@ export function PatientChat({ onCriticalRisk }: PatientChatProps) {
           createdAt: typeof conversation.createdAt === 'string' ? conversation.createdAt : now,
           updatedAt: typeof conversation.updatedAt === 'string' ? conversation.updatedAt : now,
           messages: Array.isArray(conversation.messages)
-            ? conversation.messages.map((message) => ({
+            ? conversation.messages.map((message): Message => ({
                 id: typeof message.id === 'string' ? message.id : crypto.randomUUID(),
-                role: message.role === 'assistant' ? 'assistant' : 'user',
-                content: typeof message.content === 'string' ? message.content : '',
-                riskLevel: sanitizeRiskLevel(message.riskLevel),
+                role: message?.role === 'assistant' ? 'assistant' : 'user',
+                content: typeof message?.content === 'string' ? message.content : '',
+                riskLevel: sanitizeRiskLevel(message?.riskLevel),
               }))
-            : [],
+            : ([] as Message[]),
         }
       })
 

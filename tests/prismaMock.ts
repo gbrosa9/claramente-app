@@ -73,10 +73,13 @@ function ensureId(id?: string, prefix?: string): string {
   return id ?? `${prefix ?? 'id'}_${randomUUID()}`
 }
 
-function sortByDateDescending<T extends { [key: string]: Date | null }>(items: T[], key: keyof T): T[] {
+function sortByDateDescending<T>(items: T[], key: keyof T): T[] {
   return [...items].sort((a, b) => {
-    const first = a[key] instanceof Date ? (a[key] as Date).getTime() : 0
-    const second = b[key] instanceof Date ? (b[key] as Date).getTime() : 0
+    const firstValue = a[key]
+    const secondValue = b[key]
+
+    const first = firstValue instanceof Date ? firstValue.getTime() : 0
+    const second = secondValue instanceof Date ? secondValue.getTime() : 0
     return second - first
   })
 }
@@ -86,7 +89,7 @@ export interface PrismaMock {
     deleteMany(): Promise<{ count: number }>
     create(args: { data: Partial<UserRecord> }): Promise<UserRecord>
     createMany(args: { data: Array<Partial<UserRecord>> }): Promise<{ count: number }>
-    findUnique(args: { where: { id?: string; email?: string }; include?: { consents?: boolean } }): Promise<(UserRecord & { consents?: ConsentRecord[] }) | null>
+    findUnique(args: { where: { id?: string; email?: string }; include?: { consents?: boolean } }): Promise<(Omit<UserRecord, 'consents'> & { consents?: ConsentRecord[] }) | null>
   }
   conversation: {
     deleteMany(): Promise<{ count: number }>
@@ -175,7 +178,7 @@ export function createPrismaMock(): PrismaMock {
           return null
         }
 
-        const payload = clone(record)
+        const payload: Omit<UserRecord, 'consents'> & { consents?: ConsentRecord[] } = clone(record)
 
         if (include?.consents) {
           payload.consents = clone(record.consents)
@@ -323,7 +326,7 @@ export function createPrismaMock(): PrismaMock {
           name: data.name ?? 'Assessment',
           version: data.version ?? '1.0',
           description: data.description ?? null,
-          items: data.items ?? data.questions ?? [],
+          items: data.items ?? (data as { questions?: unknown }).questions ?? [],
           scoring: data.scoring ?? {},
           publishedAt: data.publishedAt ?? null,
           createdAt: data.createdAt ?? now,
@@ -384,10 +387,12 @@ function applyConversationSelect(record: ConversationRecord, select?: SelectShap
 
   const result: Record<string, unknown> = {}
 
-  for (const key of Object.keys(select) as Array<keyof ConversationRecord>) {
-    if (key === '_count') {
+  for (const rawKey of Object.keys(select)) {
+    if (rawKey === '_count') {
       continue
     }
+
+    const key = rawKey as keyof ConversationRecord
 
     if (select[key]) {
       result[key as string] = clone(record[key])

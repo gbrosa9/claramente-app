@@ -78,8 +78,11 @@ export default function DashboardPage() {
   const [followCodeExpires, setFollowCodeExpires] = useState<string>('')
   const [generatingCode, setGeneratingCode] = useState(false)
 
-  const normalizedRole = session?.user?.role ? String(session.user.role).toLowerCase() : null
-  const isPatient = normalizedRole ? normalizedRole === 'user' || normalizedRole === 'patient' : null
+  const normalizedRole = session?.user?.role ? (String(session.user.role).toLowerCase() as string) : null
+  const isPatient: boolean | null =
+    normalizedRole === null
+      ? null
+      : normalizedRole === 'user' || normalizedRole === 'patient'
 
   useEffect(() => {
     if (normalizedRole === 'professional') {
@@ -486,7 +489,7 @@ export default function DashboardPage() {
 
   // Generate follow code
   const generateFollowCode = async () => {
-    if (isPatient !== true) {
+    if (!isPatient) {
       showNotification('error', 'Somente pacientes podem gerar códigos de acompanhamento.')
       return
     }
@@ -570,7 +573,7 @@ export default function DashboardPage() {
   }, [normalizedRole])
 
   useEffect(() => {
-    if (isPatient !== true) {
+    if (!isPatient) {
       return
     }
 
@@ -876,7 +879,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Acompanhamento Profissional */}
-              {isPatient === true && (
+              {isPatient && (
               <div className="mt-8">
                 <Card className="p-6 bg-white dark:bg-gray-800 border-0 shadow-sm">
                   <div className="flex items-center gap-4 mb-6">
@@ -919,7 +922,7 @@ export default function DashboardPage() {
                       <Button
                         variant="outline"
                         onClick={generateFollowCode}
-                        disabled={generatingCode || isPatient !== true}
+                        disabled={generatingCode || !isPatient}
                         className="w-full"
                         aria-label="Gerar novo código"
                       >
@@ -929,7 +932,7 @@ export default function DashboardPage() {
                   ) : (
                     <Button
                       onClick={generateFollowCode}
-                      disabled={generatingCode || isPatient !== true}
+                      disabled={generatingCode || !isPatient}
                       className="w-full"
                       aria-label="Gerar código de acompanhamento"
                       data-testid="generate-follow-code"

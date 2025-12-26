@@ -3,10 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Slider } from '@/components/ui/slider'
-import { Label } from '@/components/ui/label'
 import { Play, Pause, Volume2, VolumeX, Loader2, Settings } from 'lucide-react'
 
 // Tipos
@@ -213,11 +210,13 @@ export default function AvatarPlayer() {
       <CardContent className="space-y-6">
         {/* Texto */}
         <div className="space-y-2">
-          <Label htmlFor="text">Texto para falar</Label>
+          <label htmlFor="avatar-text" className="text-sm font-medium text-foreground">
+            Texto para falar
+          </label>
           <Textarea
-            id="text"
+            id="avatar-text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(event) => setText(event.target.value)}
             placeholder="Digite o texto que o avatar vai falar..."
             className="min-h-[100px]"
             maxLength={5000}
@@ -226,42 +225,46 @@ export default function AvatarPlayer() {
             {text.length}/5000 caracteres
           </p>
         </div>
-        
+
         {/* Seletores de Voz e Emoção */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Voz</Label>
-            <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a voz" />
-              </SelectTrigger>
-              <SelectContent>
-                {voices.map((voice) => (
-                  <SelectItem key={voice.id} value={voice.id}>
-                    <div className="flex flex-col">
-                      <span>{voice.name}</span>
-                      <span className="text-xs text-muted-foreground">{voice.description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label htmlFor="voice-select" className="text-sm font-medium text-foreground">
+              Voz
+            </label>
+            <select
+              id="voice-select"
+              value={selectedVoice}
+              onChange={(event) => setSelectedVoice(event.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {voices.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {voices.find((voice) => voice.id === selectedVoice)?.description ?? 'Selecione uma voz'}
+            </p>
           </div>
-          
+
           <div className="space-y-2">
-            <Label>Emoção</Label>
-            <Select value={selectedEmotion} onValueChange={(v) => setSelectedEmotion(v as EmotionType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a emoção" />
-              </SelectTrigger>
-              <SelectContent>
-                {EMOTIONS.map((emotion) => (
-                  <SelectItem key={emotion.id} value={emotion.id}>
-                    {emotion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <label htmlFor="emotion-select" className="text-sm font-medium text-foreground">
+              Emoção
+            </label>
+            <select
+              id="emotion-select"
+              value={selectedEmotion}
+              onChange={(event) => setSelectedEmotion(event.target.value as EmotionType)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {EMOTIONS.map((emotion) => (
+                <option key={emotion.id} value={emotion.id}>
+                  {emotion.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         
@@ -279,52 +282,76 @@ export default function AvatarPlayer() {
         
         {/* Configurações avançadas */}
         {showSettings && (
-          <div className="space-y-4 p-4 bg-muted rounded-lg">
+          <div className="space-y-4 rounded-lg bg-muted p-4">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label>Estabilidade</Label>
+                <label htmlFor="stability-slider" className="text-sm font-medium text-foreground">
+                  Estabilidade
+                </label>
                 <span className="text-sm text-muted-foreground">{customSettings.stability.toFixed(2)}</span>
               </div>
-              <Slider
-                value={[customSettings.stability]}
-                onValueChange={([v]) => setCustomSettings(s => ({ ...s, stability: v }))}
+              <input
+                id="stability-slider"
+                type="range"
                 min={0}
                 max={1}
                 step={0.05}
+                value={customSettings.stability}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  setCustomSettings((settings) => ({ ...settings, stability: value }))
+                }}
+                className="w-full accent-purple-600"
               />
               <p className="text-xs text-muted-foreground">
                 Menor = mais expressivo, maior = mais estável
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label>Similaridade</Label>
+                <label htmlFor="similarity-slider" className="text-sm font-medium text-foreground">
+                  Similaridade
+                </label>
                 <span className="text-sm text-muted-foreground">{customSettings.similarity_boost.toFixed(2)}</span>
               </div>
-              <Slider
-                value={[customSettings.similarity_boost]}
-                onValueChange={([v]) => setCustomSettings(s => ({ ...s, similarity_boost: v }))}
+              <input
+                id="similarity-slider"
+                type="range"
                 min={0}
                 max={1}
                 step={0.05}
+                value={customSettings.similarity_boost}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  setCustomSettings((settings) => ({ ...settings, similarity_boost: value }))
+                }}
+                className="w-full accent-purple-600"
               />
               <p className="text-xs text-muted-foreground">
                 Fidelidade à voz original
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <div className="flex justify-between">
-                <Label>Estilo</Label>
+                <label htmlFor="style-slider" className="text-sm font-medium text-foreground">
+                  Estilo
+                </label>
                 <span className="text-sm text-muted-foreground">{customSettings.style.toFixed(2)}</span>
               </div>
-              <Slider
-                value={[customSettings.style]}
-                onValueChange={([v]) => setCustomSettings(s => ({ ...s, style: v }))}
+              <input
+                id="style-slider"
+                type="range"
                 min={0}
                 max={1}
                 step={0.05}
+                value={customSettings.style}
+                onChange={(event) => {
+                  const value = Number(event.target.value)
+                  setCustomSettings((settings) => ({ ...settings, style: value }))
+                }}
+                className="w-full accent-purple-600"
               />
               <p className="text-xs text-muted-foreground">
                 Intensidade do estilo da voz
