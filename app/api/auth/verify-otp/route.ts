@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAuthClient } from "@/lib/supabase/auth";
+import type { EmailOtpType } from "@supabase/supabase-js";
 
-// ✅ Type local (compatível com supabase-js sem AuthOtpType exportado)
-type AuthOtpType = "signup" | "recovery" | "magiclink" | "email_change" | "phone_change";
-
+// ✅ Endpoint é email-only porque sempre envia { email: ... } para verifyOtp
 const VerifyOTPSchema = z.object({
   email: z.string().email("Email inválido").optional(),
-  token: z.string().min(6, "Código deve ter 6 dígitos").max(6, "Código deve ter 6 dígitos"),
-  // ✅ Removi "email" (não é tipo OTP do Supabase) e deixei os mais comuns
-  type: z.enum(["signup", "recovery", "email_change", "magiclink", "phone_change"]).optional(),
+  token: z
+    .string()
+    .min(6, "Código deve ter 6 dígitos")
+    .max(6, "Código deve ter 6 dígitos"),
+  // ✅ Tipos válidos de OTP por email no supabase-js
+  type: z.enum(["signup", "recovery", "email_change", "magiclink"]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -22,7 +24,6 @@ export async function POST(request: NextRequest) {
     const cookieEmail = request.cookies.get("pendingSignupEmail")?.value;
 
     let decodedCookieEmail: string | undefined;
-
     if (cookieEmail) {
       try {
         decodedCookieEmail = decodeURIComponent(cookieEmail);
@@ -41,13 +42,12 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = resolvedEmail.trim().toLowerCase();
-
     console.log("Verifying OTP for:", normalizedEmail);
 
     const supabase = createAuthClient();
 
     // ✅ Usa type enviado no body, senão assume signup
-    const otpType: AuthOtpType = (parsedData.type ?? "signup") as AuthOtpType;
+    const otpType: EmailOtpType = parsedData.type ?? "signup";
 
     const { data, error } = await supabase.auth.verifyOtp({
       email: normalizedEmail,
@@ -59,19 +59,26 @@ export async function POST(request: NextRequest) {
       console.error("OTP verification error:", error);
 
       const message = error.message || "Erro ao verificar código";
+      const msg = message.toLowerCase();
 
-      if (message.toLowerCase().includes("expired") || message.toLowerCase().includes("invalid")) {
+      if (msg.includes("expired") || msg.includes("invalid")) {
         return NextResponse.json(
           { ok: false, error: "Código inválido ou expirado. Solicite um novo código." },
           { status: 400 }
         );
       }
 
-      return NextResponse.json({ ok: false, error: "Erro na verificação: " + message }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Erro na verificação: " + message },
+        { status: 400 }
+      );
     }
 
     if (!data.user) {
-      return NextResponse.json({ ok: false, error: "Falha na verificação do código" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Falha na verificação do código" },
+        { status: 400 }
+      );
     }
 
     const response = NextResponse.json({
@@ -98,6 +105,9 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("OTP verification failed:", error);
-    return NextResponse.json({ ok: false, error: "Erro interno no servidor" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Erro interno no servidor" },
+      { status: 500 }
+    );
   }
 }
