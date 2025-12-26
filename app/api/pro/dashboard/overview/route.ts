@@ -5,6 +5,17 @@ import { createAdminClient } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 
+type ProfileRow = {
+  id: string
+  full_name: string | null
+  email: string | null
+  avatar_url: string | null
+  role: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  last_seen_at?: string | null
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
@@ -25,7 +36,9 @@ export async function GET() {
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY ausente. Configure a variável de ambiente para liberar o painel profissional.')
+      console.error(
+        'SUPABASE_SERVICE_ROLE_KEY ausente. Configure a variável de ambiente para liberar o painel profissional.'
+      )
       return NextResponse.json(
         { ok: false, error: 'Configuração ausente no servidor. Contate o suporte.' },
         { status: 500 }
@@ -34,14 +47,14 @@ export async function GET() {
 
     const adminClient = createAdminClient()
 
-    const {
-      data: profileData,
-      error: profileError,
-    } = await adminClient
+    const { data: profileDataRaw, error: profileError } = await adminClient
       .from('profiles')
       .select('id, full_name, email, avatar_url, role, created_at, updated_at, last_seen_at')
       .eq('id', professionalId)
       .maybeSingle()
+
+    // ✅ tipa explicitamente (evita "never")
+    const profileData = (profileDataRaw as ProfileRow | null) ?? null
 
     if (profileError && profileError.code !== 'PGRST116') {
       console.warn('Erro ao carregar perfil profissional:', profileError)
@@ -55,10 +68,10 @@ export async function GET() {
       sessionUser.email?.split('@')[0] ||
       'Profissional'
 
-    let resolvedProfile = profileData
+    let resolvedProfile: ProfileRow | null = profileData
 
     if (!resolvedProfile) {
-      const { data: insertedProfile, error: insertProfileError } = await adminClient
+      const { data: insertedProfileRaw, error: insertProfileError } = await adminClient
         .from('profiles')
         .upsert(
           {
@@ -72,6 +85,8 @@ export async function GET() {
         .select('id, full_name, email, avatar_url, role, created_at, updated_at, last_seen_at')
         .single()
 
+      const insertedProfile = (insertedProfileRaw as ProfileRow | null) ?? null
+
       if (insertProfileError) {
         console.error('Não foi possível criar perfil para o profissional:', insertProfileError)
       } else {
@@ -79,13 +94,15 @@ export async function GET() {
       }
     }
 
-    if (resolvedProfile?.role !== 'professional') {
-      const { data: updatedProfile, error: updateProfileError } = await adminClient
+    if (resolvedProfile && resolvedProfile.role !== 'professional') {
+      const { data: updatedProfileRaw, error: updateProfileError } = await adminClient
         .from('profiles')
         .update({ role: 'professional' })
         .eq('id', professionalId)
         .select('id, full_name, email, avatar_url, role, created_at, updated_at, last_seen_at')
         .single()
+
+      const updatedProfile = (updatedProfileRaw as ProfileRow | null) ?? null
 
       if (updateProfileError) {
         console.error('Não foi possível garantir papel profissional para o perfil:', updateProfileError)
@@ -118,21 +135,11 @@ export async function GET() {
         .eq('is_read', false),
     ])
 
-    if (patientsResponse.error) {
-      console.error('Erro ao carregar pacientes recentes:', patientsResponse.error)
-    }
-
-    if (totalCountResponse.error) {
-      console.error('Erro ao contar pacientes totais:', totalCountResponse.error)
-    }
-
-    if (activeCountResponse.error) {
-      console.error('Erro ao contar pacientes ativos:', activeCountResponse.error)
-    }
-
-    if (notificationsCountResponse.error) {
+    if (patientsResponse.error) console.error('Erro ao carregar pacientes recentes:', patientsResponse.error)
+    if (totalCountResponse.error) console.error('Erro ao contar pacientes totais:', totalCountResponse.error)
+    if (activeCountResponse.error) console.error('Erro ao contar pacientes ativos:', activeCountResponse.error)
+    if (notificationsCountResponse.error)
       console.error('Erro ao contar notificações não lidas:', notificationsCountResponse.error)
-    }
 
     const patients = patientsResponse.data ?? []
     const patientIds = patients.map((patient) => (patient as Record<string, any>).patient_id as string)
@@ -194,15 +201,18 @@ export async function GET() {
       sessionsThisWeek: 0,
     }
 
+    // ✅ fallback NÃO usa resolvedProfile (porque se caiu aqui ele é null)
+    const fallbackProfile: ProfileRow = {
+      id: professionalId,
+      full_name: defaultName,
+      email: sessionUser.email ?? null,
+      avatar_url: null,
+      role: 'professional',
+    }
+
     return NextResponse.json({
       ok: true,
-      profile: resolvedProfile ?? {
-        id: professionalId,
-        full_name: defaultName,
-        email: sessionUser.email ?? null,
-        avatar_url: resolvedProfile?.avatar_url ?? null,
-        role: 'professional',
-      },
+      profile: resolvedProfile ?? fallbackProfile,
       patients: enrichedPatients,
       stats,
     })
