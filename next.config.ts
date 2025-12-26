@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverExternalPackages: [
+    'pino',
+    'pino-abstract-transport',
+    'pino-std-serializers',
+    'sonic-boom',
+    'thread-stream',
+  ],
 };
 
 export default nextConfig;
